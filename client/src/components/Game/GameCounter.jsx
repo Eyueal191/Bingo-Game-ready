@@ -1,0 +1,33 @@
+import { Box, Typography } from "@mui/material";
+import { CardCounter } from "../CardList";
+
+export default function GameCounter({
+  countdown,
+  waitingForCounter,
+  gameStarted,
+}) {
+  if (waitingForCounter && !gameStarted) {
+    return (
+      <Box className="text-center px-6! py-2!">
+        <Typography className="block text-[10px] sm:text-sm font-semibold text-white glow-black">
+          Waiting for more players...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!gameStarted && typeof countdown === "number" && countdown > 0) {
+    return <CardCounter counterValue={countdown} variant="inline" />;
+  }
+
+  return (
+    <Box className="text-center px-6! py-2!">
+      <Typography className="block text-[10px] sm:text-sm font-semibold text-white glow-black">
+        Game is
+      </Typography>
+      <Typography className="block text-base sm:text-xl font-extrabold text-white glow-black">
+        Started
+      </Typography>
+    </Box>
+  );
+}

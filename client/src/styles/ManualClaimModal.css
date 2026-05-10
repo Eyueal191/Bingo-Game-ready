@@ -1,0 +1,93 @@
+/* Manual Claim Modal styling aligned with bingo brand palette */
+
+.manual-claim-modal {
+  background: linear-gradient(200deg, var(--color-bingo-surface) 0%, var(--color-bingo-bg) 100%);
+  border: 1px solid rgba(255, 140, 0, 0.35); /* using a generic orange tint for the border */
+  box-shadow:
+    0 24px 48px -28px var(--color-bingo-shadow),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  position: relative;
+  overflow: hidden;
+  width: min(92vw, 540px);
+  border-radius: 18px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.manual-claim-modal::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: radial-gradient(520px at 15% 15%, rgba(255, 140, 0, 0.18), transparent 60%),
+    radial-gradient(460px at 85% 85%, rgba(52, 152, 219, 0.16), transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.manual-claim-modal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.manual-claim-modal-content {
+  position: relative;
+  z-index: 1;
+  color: var(--color-bingo-white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.manual-claim-title {
+  color: var(--color-bingo-yellow);
+  text-shadow: 0 4px 16px rgba(255, 204, 0, 0.3);
+}
+
+.manual-claim-subtitle {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.manual-claim-card-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.manual-claim-card-title {
+  color: var(--color-bingo-yellow);
+  text-shadow: 0 2px 8px rgba(255, 204, 0, 0.28);
+}
+
+.manual-claim-called {
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 90%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.manual-claim-called strong {
+  color: var(--color-bingo-yellow);
+}
+
+.manual-claim-button-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.manual-claim-button {
+  width: min(240px, 100%);
+  padding: 0.85rem 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

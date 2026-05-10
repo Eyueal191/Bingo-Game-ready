@@ -1,0 +1,200 @@
+/* =========================
+   Game Center – 2-Tier Grid
+   ========================= */
+
+/* ========== FEATURED GAMES ========== */
+/* 2-column, large image-filled cards */
+.featured-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.featured-card {
+    background: var(--color-bingo-card);
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    border: 1px solid var(--color-bingo-yellow-dark);
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+}
+
+.featured-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(248, 213, 23, 0.2);
+    border-color: var(--color-bingo-yellow);
+}
+
+.featured-card img {
+    width: 100%;
+    display: block;
+    aspect-ratio: 1;
+    object-fit: fill;
+    margin: 0;
+}
+
+/* No title on featured — images already contain it */
+
+/* ========== REGULAR GAMES ========== */
+/* 3-column, compact icon cards */
+.game-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.game-card {
+    background: var(--color-bingo-card);
+    border-radius: 10px;
+    padding: 0;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.game-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(85, 255, 119, 0.12);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.game-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    display: block;
+    object-fit: fill;
+}
+
+/* TITLE (only shown on regular cards) */
+.game-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--color-bingo-white);
+}
+
+/* NEW BADGE */
+.badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--color-bingo-yellow);
+    color: #000000;
+    padding: 2px 8px;
+    font-size: 9px;
+    border-radius: 6px;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+}
+
+/* DISABLED OVERLAY */
+.game-disabled-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: inherit;
+    z-index: 1;
+}
+
+/* ========== MODAL ========== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--color-bingo-overlay);
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-content {
+    background: var(--color-bingo-card);
+    padding: 28px;
+    border-radius: 18px;
+    text-align: center;
+    width: 300px;
+    border: 2px solid var(--color-bingo-green);
+    animation: pop 0.3s ease;
+    color: var(--color-bingo-white);
+}
+
+@keyframes pop {
+    from {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.close-btn {
+    margin-top: 18px;
+    padding: 10px 24px;
+    background: var(--color-bingo-green);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    color: #000;
+    font-size: 14px;
+    transition: background 0.2s ease;
+}
+
+.close-btn:hover {
+    background: var(--color-bingo-background);
+    color: #fff;
+}
+
+/* ========== DESKTOP OVERRIDES ========== */
+@media (min-width: 768px) {
+    .featured-container {
+        max-width: 900px;
+        gap: 24px;
+    }
+
+    .featured-card {
+        border-radius: 22px;
+    }
+
+    .game-container {
+        max-width: 900px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+    }
+
+    .game-card {
+        padding: 0;
+    }
+
+    .game-card img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1;
+    }
+
+    .badge {
+        top: 10px;
+        right: 10px;
+        padding: 3px 10px;
+        font-size: 11px;
+    }
+}
