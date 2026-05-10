@@ -1,0 +1,56 @@
+services:
+  haywin-mongo:
+    image: mongo:7.0
+    container_name: haywin-mongo
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=sam12345
+    volumes:
+      - haywin-mongo-data:/data/db
+      - ./mongo-keyfile:/etc/mongo-keyfile:ro
+    command: mongod --replSet rs0 --bind_ip localhost,haywin-mongo --oplogSize 128 --keyFile /etc/mongo-keyfile
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.runCommand({ping: 1}).ok",
+          "mongodb://root:sam12345@localhost:27017/admin"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+    networks:
+      - haywin-network
+
+  haywin-backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: haywin-backend
+    ports:
+      - "5055:5055"
+    restart: always
+    env_file:
+      - ./server/.env
+    environment:
+      - NODE_ENV=production
+    networks:
+      - haywin-network
+    depends_on:
+      haywin-mongo:
+        condition: service_healthy
+    volumes:
+      - haywin-backend-uploads:/app/uploads
+
+volumes:
+  haywin-mongo-data:
+  haywin-backend-uploads:
+
+networks:
+  haywin-network:
+    driver: bridge

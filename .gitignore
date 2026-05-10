@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# builds
+build/
+dist/
+client/build/
+
+# environment variables
+.env
+.env.*
+client/.env
+client/.env.*
+server/.env
+server/.env.*
+
+# logs
+*.log
+server/error.log
+server/combined.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+
+# uploads (optional if generated files)
+server/uploads/
+
+# archives
+*.zip
+
+# misc
+lint_output.txt
+gap.md
