@@ -28,7 +28,6 @@ function Game() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // 1. Unified Game Controller (Logic & Mode Sync)
   const {
     handleModalClose,
     handleToggleNumber,
@@ -38,15 +37,9 @@ function Game() {
     handleLeave,
     handleRefresh,
     disqualificationStorageKey,
-    watcherStorageKey
-  } = useGameController(
-    socket,
-    roomId,
-    userId,
-    authLoading
-  );
+    watcherStorageKey,
+  } = useGameController(socket, roomId, userId, authLoading);
 
-  // 2. Network Events (Socket.IO -> Zustand Hub)
   useGameSocketEvents(
     socket,
     roomId,
@@ -55,7 +48,6 @@ function Game() {
     watcherStorageKey
   );
 
-  // 3. State Subscription (Single Source of Truth)
   const {
     loading,
     liveResults,
@@ -78,7 +70,6 @@ function Game() {
     userLoss,
     updatedStakeAmount,
     numberOfPlayers,
-    shuffling,
     winPattern,
     winAmount,
     isManualMode,
@@ -89,22 +80,20 @@ function Game() {
     disqualifiedCards,
     isTemporaryWatcher,
     temporaryWatcherMessage,
-    roomData,
     countdown,
-    waitingForCounter
+    waitingForCounter,
   } = useAppStore();
 
-  const [theme] = useState("dark"); // Design constant
+  const [theme] = useState("dark");
 
-  // UI Heartbeat (Animations)
   useEffect(() => {
     if (!animationTrigger) return;
-    const timeout = setTimeout(() => useAppStore.getState().setAnimationTrigger(false), 400);
+    const timeout = setTimeout(
+      () => useAppStore.getState().setAnimationTrigger(false),
+      400
+    );
     return () => clearTimeout(timeout);
   }, [animationTrigger]);
-
-
-
 
   if (authLoading) {
     return <BingoLoading message="መጫወቻው እየተዘጋጀ ነው..." size="large" />;
@@ -112,147 +101,153 @@ function Game() {
 
   const isWatcher = isDisqualified || isTemporaryWatcher;
 
-  // 4. View Rendering (Pure Layout)
   return (
     <div
-      className={`fixed inset-0 overflow-hidden bg-[#21103D] ${theme === "dark" ? "text-white" : "text-black"
+      className={`w-full min-h-[113vh] bg-[#21103D] ${theme === "dark" ? "text-white" : "text-black"
         }`}
     >
-      <div className="w-full h-full mx-auto p-1 lg:p-2 xl:p-3 max-w-7xl relative flex flex-col overflow-hidden">
+      {/* ===================== 100vh GAME AREA ===================== */}
+      <div className="h-[100vh] w-full mx-auto p-1 lg:p-2 xl:p-3 max-w-7xl relative flex flex-col overflow-hidden">
+
         {loading ? (
           <BingoLoading message="Loading..." size="large" />
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-12">
-              {/* PERMANENT FULL-WIDTH HEADER */}
-              <div className="mb-2">
-                <GameHeader
-                  updatedStakeAmount={isWatcher ? 0 : updatedStakeAmount || stakeAmount}
-                  numberOfPlayers={numberOfPlayers}
-                  winAmount={winAmount}
-                  liveResults={liveResults}
-                  onOpenSettings={() => setIsSettingsOpen(true)}
-                />
-              </div>
-
-              {/* Game Counter / Waiting State */}
-              <div className="flex justify-center my-1">
-                <GameCounter
-                  countdown={countdown}
-                  waitingForCounter={waitingForCounter}
-                  gameStarted={gameStarted || liveResults.length > 0}
-                />
-              </div>
-
-              <div className="flex flex-row w-full my-1 gap-1 sm:gap-2">
-
-                {/* LEFT GRID */}
-                <div className="w-[50%] sm:w-[40%] lg:w-[30%] min-w-0 flex flex-col">
-                  <div className="bg-bingo-bg rounded-lg p-0 sm:p-0.5 flex-1 flex flex-col">
-                    <div className="flex-1">
-                      <BingoGrid
-                        numbers={Array.from({ length: 75 }, (_, index) => index + 1)}
-                        liveResults={liveResults}
-                        animationTrigger={animationTrigger}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* RIGHT PANEL */}
-                <div className="w-[50%] sm:w-[60%] lg:w-[70%] flex flex-col gap-1 sm:gap-2 min-w-0">
-                  <PlayModeToggle
-                    isManualMode={isManualMode}
-                    toggleMode={toggleMode}
-                    isWatcher={isWatcher}
-                  />
-                  {/* CURRENT BALL PILL */}
-                  <div>
-                    <BingoBallDisplay
-                      prefixedNumber={prefixedNumber}
-                      animationTrigger={animationTrigger}
-                      liveResults={liveResults}
-                      gameStarted={gameStarted || liveResults.length > 0}
-                    />
-                  </div>
-
-                  {/* PLAYER CARDS */}
-                  <div className="bg-bingo-card-alt backdrop-blur-sm rounded-xl p-0 shadow-lg flex-1">
-                    <PlayerCardsSection
-                      storedCards={storedCards}
-                      userId={userId}
-                      roomId={roomId}
-                      liveResults={liveResults}
-                      isManualMode={isManualMode}
-                      sharedSelectedNumbers={sharedSelectedNumbers}
-                      onToggleNumber={handleToggleNumber}
-                      isWatcher={isWatcher}
-                      isDisqualifiedWatcher={isDisqualified}
-                      disqualificationMessage={
-                        disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE
-                      }
-                      disqualifiedCards={disqualifiedCards}
-                      spectatorMessage={temporaryWatcherMessage}
-                      winPattern={winPattern}
-                    />
-                  </div>
-                </div>
-              </div>
+            {/* HEADER */}
+            <div className="shrink-0">
+              <GameHeader
+                updatedStakeAmount={
+                  isWatcher ? 0 : updatedStakeAmount || stakeAmount
+                }
+                numberOfPlayers={numberOfPlayers}
+                winAmount={winAmount}
+                liveResults={liveResults}
+              />
             </div>
 
-            {/* MODALS */}
-            {isSettingsOpen && (
-              <GameSettingsModal
-                isManualMode={isManualMode}
-                toggleMode={toggleMode}
-                voiceOption={voiceOption}
-                voiceOptions={voiceOptions}
-                handleVoiceChange={handleVoiceChange}
-                isMuted={isMuted}
-                toggleMute={toggleMute}
-                isWatcher={isWatcher}
-                onClose={() => setIsSettingsOpen(false)}
+            {/* COUNTER */}
+            <div className="shrink-0 flex justify-center">
+              <GameCounter
+                countdown={countdown}
+                waitingForCounter={waitingForCounter}
+                gameStarted={gameStarted || liveResults.length > 0}
               />
-            )}
+            </div>
 
-            {finishedGame && (
-              <BingoModal
-                playerId={userId || "unknown"}
-                roomId={roomId}
-                isWatcher={isWatcher}
-                onClose={handleModalClose}
-                winners={winners}
-                winningCards={winningCards}
-                winningCombos={winningCombos}
-                prizes={prizes}
-                drawnNumbers={drawnNumbers}
-                winningCardGrids={winningCardGrids}
-                result={result}
-                userPrize={userPrize}
-                userLoss={userLoss}
-                firstNames={firstNames}
-                lastBall={currentNumber}
-                disqualified={isDisqualified || result === "Disqualified"}
-                disqualificationMessage={
-                  disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE
-                }
-                disqualifiedCards={disqualifiedCards}
-                isMuted={isMuted}
-                winPattern={winPattern}
-              />
-            )}
+            {/* MAIN CONTENT */}
+            <div className="flex flex-1 min-h-0 flex-row w-full">
 
-            <div className="fixed bottom-0 left-0 right-0 p-1 z-10 bg-gradient-to-t from-bingo-bg/90 to-transparent">
-              <GameControls
-                handleLeave={handleLeave}
-                handleRefresh={handleRefresh}
-                isWatcher={isWatcher}
-              />
+              {/* LEFT GRID */}
+              <div className="w-[50%] sm:w-[40%] lg:w-[30%] min-w-0 flex flex-col">
+                <div className="bg-bingo-bg rounded-lg flex-1 flex flex-col">
+                  <BingoGrid
+                    numbers={Array.from({ length: 75 }, (_, i) => i + 1)}
+                    liveResults={liveResults}
+                    animationTrigger={animationTrigger}
+                  />
+                </div>
+              </div>
+
+              {/* RIGHT PANEL */}
+              <div className="w-[50%] sm:w-[60%] lg:w-[70%] flex flex-col min-w-0">
+
+                {/* MODE TOGGLE */}
+                <PlayModeToggle
+                  isManualMode={isManualMode}
+                  toggleMode={toggleMode}
+                  isWatcher={isWatcher}
+                  onOpenSettings={() => setIsSettingsOpen(true)}
+                />
+
+                {/* CURRENT BALL */}
+                <BingoBallDisplay
+                  prefixedNumber={prefixedNumber}
+                  animationTrigger={animationTrigger}
+                  liveResults={liveResults}
+                  gameStarted={gameStarted || liveResults.length > 0}
+                />
+
+                {/* PLAYER CARDS */}
+                <div className="bg-bingo-card-alt backdrop-blur-sm rounded-xl p-0 shadow-lg flex-1 h-[300px] max-h-[300px] overflow-y-auto">
+                  <PlayerCardsSection
+                    storedCards={storedCards}
+                    userId={userId}
+                    roomId={roomId}
+                    liveResults={liveResults}
+                    isManualMode={isManualMode}
+                    sharedSelectedNumbers={sharedSelectedNumbers}
+                    onToggleNumber={handleToggleNumber}
+                    isWatcher={isWatcher}
+                    isDisqualifiedWatcher={isDisqualified}
+                    disqualificationMessage={
+                      disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE
+                    }
+                    disqualifiedCards={disqualifiedCards}
+                    spectatorMessage={temporaryWatcherMessage}
+                    winPattern={winPattern}
+                  />
+                </div>
+
+              </div>
             </div>
           </>
         )}
       </div>
+
+      {/* ===================== 13vh CONTROLS ===================== */}
+      <div className="h-[13vh] w-full flex items-end">
+        <div className="w-full p-1 bg-gradient-to-t from-bingo-bg/90 to-transparent">
+          <GameControls
+            handleLeave={handleLeave}
+            handleRefresh={handleRefresh}
+            isWatcher={isWatcher}
+          />
+        </div>
+      </div>
+
+      {/* ===================== MODALS ===================== */}
+      {isSettingsOpen && (
+        <GameSettingsModal
+          isManualMode={isManualMode}
+          toggleMode={toggleMode}
+          voiceOption={voiceOption}
+          voiceOptions={voiceOptions}
+          handleVoiceChange={handleVoiceChange}
+          isMuted={isMuted}
+          toggleMute={toggleMute}
+          isWatcher={isWatcher}
+          onClose={() => setIsSettingsOpen(false)}
+        />
+      )}
+
+      {finishedGame && (
+        <BingoModal
+          playerId={userId || "unknown"}
+          roomId={roomId}
+          isWatcher={isWatcher}
+          onClose={handleModalClose}
+          winners={winners}
+          winningCards={winningCards}
+          winningCombos={winningCombos}
+          prizes={prizes}
+          drawnNumbers={drawnNumbers}
+          winningCardGrids={winningCardGrids}
+          result={result}
+          userPrize={userPrize}
+          userLoss={userLoss}
+          firstNames={firstNames}
+          lastBall={currentNumber}
+          disqualified={isDisqualified || result === "Disqualified"}
+          disqualificationMessage={
+            disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE
+          }
+          disqualifiedCards={disqualifiedCards}
+          isMuted={isMuted}
+          winPattern={winPattern}
+        />
+      )}
     </div>
   );
-};
+}
+
 export default Game;

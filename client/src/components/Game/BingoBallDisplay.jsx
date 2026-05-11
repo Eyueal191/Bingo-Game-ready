@@ -20,7 +20,6 @@ const getBallStyle = (draw) => {
   }
 
   const value = String(draw).toUpperCase();
-
   const prefix = value[0];
   const number = value.slice(1);
 
@@ -49,7 +48,6 @@ const BingoBallDisplay = ({
   liveResults = [],
   gameStarted,
 }) => {
-
   const currentBall = useMemo(() => {
     if (prefixedNumber) return prefixedNumber;
     if (Array.isArray(liveResults) && liveResults.length > 0) {
@@ -66,8 +64,8 @@ const BingoBallDisplay = ({
 
   if (!gameStarted) {
     return (
-      <div className="flex items-center justify-center w-full min-h-[80px]">
-        <h3 className="text-white text-sm font-semibold text-center">
+      <div className="flex items-center justify-center w-full py-2">
+        <h3 className="text-white text-xs sm:text-sm font-semibold text-center">
           Waiting for more players...
         </h3>
       </div>
@@ -75,37 +73,35 @@ const BingoBallDisplay = ({
   }
 
   return (
-    <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 w-full">
+    <div className="flex flex-row items-center justify-between w-full gap-2 sm:gap-4">
 
-      {/* CURRENT BALL */}
+      {/* CURRENT BALL (responsive size) */}
       <div
-        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-lg border border-white ${
-          animationTrigger ? "animate-bounce-in" : ""
-        }`}
+        className={`flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-lg border border-white ${animationTrigger ? "animate-bounce-in" : ""
+          }`}
         style={{
           backgroundColor: currentStyle.bg,
           color: currentStyle.text,
         }}
       >
-        <span className="text-lg sm:text-xl font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+        <span className="text-sm sm:text-lg md:text-xl font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
           {currentStyle.label}
         </span>
       </div>
 
-      {/* RECENT BALLS */}
-      <div className="flex-none flex flex-wrap gap-2 justify-center">
+      {/* RECENT BALLS (compact horizontal scroll/wrap) */}
+      <div className="flex flex-1 flex-wrap gap-1 sm:gap-2 justify-end items-center">
 
         {lastTwo
           .slice()
           .reverse()
           .map((draw, index) => {
-
             const style = getBallStyle(draw);
 
             return (
               <div
                 key={`${draw}-${index}`}
-                className="w-[clamp(40px,5vw,60px)] h-[clamp(40px,5vw,60px)] rounded-full flex items-center justify-center font-bold shadow-md cursor-pointer animate-float-slow"
+                className="w-8 h-8 sm:w-10 sm:h-10 md:w-[50px] md:h-[50px] rounded-full flex items-center justify-center font-bold shadow-md cursor-pointer animate-float-slow"
                 title={style.label}
                 style={{
                   backgroundColor: style.bg,
@@ -115,7 +111,7 @@ const BingoBallDisplay = ({
                   animationDelay: `${index * 90}ms`,
                 }}
               >
-                <span className="text-sm font-black">
+                <span className="text-[10px] sm:text-xs font-black">
                   {style.short}
                 </span>
               </div>

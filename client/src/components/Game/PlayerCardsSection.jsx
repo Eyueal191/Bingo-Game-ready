@@ -25,15 +25,15 @@ const PlayerCardsSection = ({
 
   const handleToggleNumber = (number) => {
     if (number === "F") return;
+
     if (enforcedReadOnly) {
       toast.info("Watching mode is read-only for this round.");
       return;
     }
+
     if (!isManualMode) return;
 
-    if (!liveResults.includes(number)) {
-      return;
-    }
+    if (!liveResults.includes(number)) return;
 
     onToggleNumber(number);
   };
@@ -49,21 +49,25 @@ const PlayerCardsSection = ({
   const cardCount = cardsToDisplay.length;
 
   return (
-    <div className="w-full flex flex-col gap-2 lg:gap-4">
-      {cardsToDisplay.length > 0 ? (
-        <div className="w-full min-w-0">
-          {/* Mobile layout */}
-          <div className="flex flex-col gap-2 md:hidden max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent w-full">
-            {/* Auto banner ABOVE cards when 2+ cards */}
-            {isAutoMode && cardCount >= 2 && <AutoModeBanner />}
+    <div className="w-full h-full min-h-0 flex flex-col">
 
-            {cardsToDisplay.map((card, index) => (
-              <div
-                key={index}
-                className="relative group touch-manipulation shrink-0 w-full min-w-0"
-              >
-                <div className="bg-bingo-card-alt rounded-lg p-0.5 transition-all duration-200 active:scale-[0.98] w-full min-w-0">
-                  <div className="w-full min-w-0">
+      {cardsToDisplay.length > 0 ? (
+        <div className="w-full h-full min-h-0">
+
+          {/* SCROLL CONTAINER (ONLY ONE) */}
+          <div className="h-full min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent flex flex-col gap-2 md:gap-4">
+
+            {/* MOBILE VIEW */}
+            <div className="flex flex-col gap-2 md:hidden">
+
+              {isAutoMode && cardCount >= 2 && <AutoModeBanner />}
+
+              {cardsToDisplay.map((card, index) => (
+                <div
+                  key={index}
+                  className="relative group shrink-0 w-full"
+                >
+                  <div className="bg-bingo-card-alt rounded-lg p-0.5 w-full">
                     <PlayerCard
                       cardId={card}
                       userId={userId}
@@ -77,49 +81,48 @@ const PlayerCardsSection = ({
                       winPattern={winPattern}
                     />
                   </div>
+
+                  {isAutoMode && cardCount === 1 && <AutoModeBanner />}
                 </div>
+              ))}
+            </div>
 
-                {/* Auto banner BELOW card when only 1 card */}
-                {isAutoMode && cardCount === 1 && <AutoModeBanner />}
-              </div>
-            ))}
-          </div>
+            {/* DESKTOP GRID */}
+            <div className="hidden md:grid md:grid-cols-2 gap-3 md:gap-4">
 
-          {/* Desktop grid layout */}
-          <div className="hidden md:grid md:grid-cols-2 gap-3 md:gap-4 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-            {/* Auto banner spans full width above cards when 2+ */}
-            {isAutoMode && cardCount >= 2 && (
-              <div className="col-span-2">
-                <AutoModeBanner />
-              </div>
-            )}
-
-            {cardsToDisplay.map((card, index) => (
-              <div key={index} className="relative group w-full">
-                <div className="bg-bingo-card-alt rounded-xl border border-white/10 hover:border-white/20 transition-all duration-200 hover:shadow-lg w-full">
-                  <PlayerCard
-                    cardId={card}
-                    userId={userId}
-                    roomId={roomId}
-                    liveResults={liveResults}
-                    isManualMode={isManualMode}
-                    sharedSelectedNumbers={sharedSelectedNumbers}
-                    onToggleNumber={handleToggleNumber}
-                    isReadOnly={enforcedReadOnly}
-                    isWatcher={enforcedReadOnly}
-                  />
+              {isAutoMode && cardCount >= 2 && (
+                <div className="col-span-2">
+                  <AutoModeBanner />
                 </div>
+              )}
 
-                {/* Auto banner below card when only 1 card */}
-                {isAutoMode && cardCount === 1 && <AutoModeBanner />}
-              </div>
-            ))}
+              {cardsToDisplay.map((card, index) => (
+                <div key={index} className="relative group w-full">
+                  <div className="bg-bingo-card-alt rounded-xl border border-white/10 w-full">
+                    <PlayerCard
+                      cardId={card}
+                      userId={userId}
+                      roomId={roomId}
+                      liveResults={liveResults}
+                      isManualMode={isManualMode}
+                      sharedSelectedNumbers={sharedSelectedNumbers}
+                      onToggleNumber={handleToggleNumber}
+                      isReadOnly={enforcedReadOnly}
+                      isWatcher={enforcedReadOnly}
+                      winPattern={winPattern}
+                    />
+                  </div>
+
+                  {isAutoMode && cardCount === 1 && <AutoModeBanner />}
+                </div>
+              ))}
+            </div>
+
           </div>
         </div>
       ) : (
-        <div className="text-center p-6! my-4! lg:p-8 bg-bingo-card-alt rounded-xl ">
+        <div className="text-center p-6 my-4 lg:p-8 bg-bingo-card-alt rounded-xl">
           <div className="flex flex-col items-center gap-3">
-
             <p className="text-txt-waiting text-sm lg:text-base font-medium">
               {enforcedReadOnly
                 ? isDisqualifiedWatcher
@@ -127,11 +130,9 @@ const PlayerCardsSection = ({
                   : "Wait until this game is finished and you will join the next game."
                 : "Waiting for game"}
             </p>
-
           </div>
         </div>
       )}
-
     </div>
   );
 };

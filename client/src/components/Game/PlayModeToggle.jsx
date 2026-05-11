@@ -1,50 +1,61 @@
 import React from "react";
-import { Zap, Hand } from "lucide-react";
+import { Zap, Hand, Settings } from "lucide-react";
 
 /**
- * PlayModeToggle - A premium toggle component for switching between Auto and Manual play modes.
- * Now includes a settings entry point and live session indicator.
+ * PlayModeToggle - Toggle on left, settings on right
  */
-export const PlayModeToggle = ({ isManualMode, toggleMode, isWatcher }) => {
+export const PlayModeToggle = ({
+  isManualMode,
+  toggleMode,
+  isWatcher,
+  onOpenSettings,
+}) => {
   return (
-    <div className="flex items-center justify-between mb-2 px-1 gap-2">
-      {/* Left: Live Indicator */}
-      <div className="flex items-center gap-2 flex-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-        <span className="text-[10px] sm:text-xs font-black text-white/40 uppercase tracking-[0.2em] whitespace-nowrap">
-          Live Session
-        </span>
-      </div>
-      
-      {/* Right: Controls */}
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center justify-between mb-2 px-1 gap-2 w-full">
+
+      {/* LEFT: Play Mode Toggle */}
+      <div className="flex items-center">
         <button
           onClick={toggleMode}
           disabled={isWatcher}
-          className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 shadow-lg border ${
-            isWatcher ? "opacity-50 cursor-not-allowed grayscale" : ""
-          } ${
-            isManualMode
+          className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 shadow-lg border ${isWatcher ? "opacity-50 cursor-not-allowed grayscale" : ""
+            } ${isManualMode
               ? "bg-amber-500/10 border-amber-500/50 text-amber-500 hover:bg-amber-500/20"
               : "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/20"
-          }`}
+            }`}
         >
           <div className="flex items-center gap-1.5">
             {isManualMode ? (
               <>
                 <CustomHand size={14} className="animate-pulse" />
-                <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-tight">Manual</span>
+                <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-tight">
+                  Manual
+                </span>
               </>
             ) : (
               <>
                 <Zap size={14} className="animate-pulse" />
-                <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-tight">Auto</span>
+                <span className="text-[11px] sm:text-[13px] font-black uppercase tracking-tight">
+                  Auto
+                </span>
               </>
             )}
           </div>
-          
-          {/* Subtle indicator dot */}
-          <div className={`w-1.5 h-1.5 rounded-full ${isManualMode ? "bg-amber-500" : "bg-emerald-500"} shadow-[0_0_8px_rgba(0,0,0,0.5)]`} />
+
+          <div
+            className={`w-1.5 h-1.5 rounded-full ${isManualMode ? "bg-amber-500" : "bg-emerald-500"
+              }`}
+          />
+        </button>
+      </div>
+
+      {/* RIGHT: Settings */}
+      <div className="flex items-center">
+        <button
+          onClick={onOpenSettings}
+          className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-95"
+        >
+          <Settings size={16} className="text-white/70 hover:text-white transition-colors" />
         </button>
       </div>
     </div>
@@ -53,14 +64,14 @@ export const PlayModeToggle = ({ isManualMode, toggleMode, isWatcher }) => {
 
 // Hand icon component
 const CustomHand = ({ size, className }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="3" 
-    strokeLinecap="round" 
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
   >
