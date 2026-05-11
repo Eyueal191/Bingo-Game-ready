@@ -278,34 +278,6 @@ const initializeBingoSocket = (io) => {
             }
         );
 
-        socket.on(
-            "unreserve_cards",
-            async ({ roomId, cardIds, userId }, callback) => {
-                const respond = (payload) => {
-                    if (typeof callback === "function") {
-                        callback(payload);
-                    }
-                };
-
-                try {
-                    const result = await reservationService.unreserveCards(io, {
-                        roomId,
-                        cardIds,
-                        userId
-                    });
-
-                    if (result.error) {
-                        respond({ error: result.error });
-                    } else {
-                        respond(result);
-                    }
-                } catch (error) {
-                    logger.error(`Error unreserving cards for room ${roomId}`, error);
-                    respond({ error: { message: "Failed to unreserve cards" } });
-                }
-            }
-        );
-
         socket.on("get_settings", async () => {
             try {
                 const settings = await getSettings();
@@ -320,35 +292,6 @@ const initializeBingoSocket = (io) => {
     let gameRoomChangeStream = null;
 let isWatchingReservations = false;
 let isWatchingGameRooms = false;
-
-    const emitGameDetails = async (roomId) => {
-        try {
-            const gameRoom = await GameRoom.findById(roomId);
-            if (!gameRoom) return;
-
-            const reservations = await Reservation.find({ roomId, status: { $in: ["active", "pending"] } });
-            const uniqueCardIds = new Set();
-            reservations.forEach(r => {
-                (r.cardIds || []).forEach(id => uniqueCardIds.add(id));
-            });
-            const numberOfPlayers = uniqueCardIds.size;
-            
-            const { StakeBonusSettings } = require("../models");
-            const stakeSettings = await StakeBonusSettings.findOne({ stakeAmount: gameRoom.stakeAmount });
-            const systemCommission = stakeSettings?.systemCommission || 0.2;
-            const totalStake = numberOfPlayers * gameRoom.stakeAmount;
-            const houseProfit = totalStake * systemCommission;
-            const winAmount = totalStake - houseProfit;
-
-            io.to(roomId.toString()).emit("Game-details", {
-                numberOfPlayers,
-                winAmount,
-                stakeAmount: gameRoom.stakeAmount
-            });
-        } catch (e) {
-            logger.error("Error emitting game details", e);
-        }
-    };
 
     const watchReservations = () => {
         if (isWatchingReservations) return;
@@ -377,7 +320,6 @@ let isWatchingGameRooms = false;
             if (!roomId) return;
 
             emitBingoPlayerCount(io);
-            emitGameDetails(roomId);
 
             io.to(roomId).emit("cards", await fetchCardStatuses(roomId));
             const updatedRooms = await GameRoom.find({

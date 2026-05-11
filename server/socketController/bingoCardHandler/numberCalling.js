@@ -14,7 +14,6 @@ const getGameLifecycle = () => require("./gameLifecycle");
 
 
 const callBingoNumber = async (io, gameRoomId) => {
-
   // Use circular-safe module references
   const { resolveRobotDrawOptions, checkForWinners } = winDetection;
   const { handleGameOver } = getGameLifecycle();
@@ -22,20 +21,14 @@ const callBingoNumber = async (io, gameRoomId) => {
 
   try {
     logger.debug(`Calling bingo number for ${gameRoomId}`);
-
     const gameRoom = await GameRoom.findById(gameRoomId);
-
     if (!gameRoom || gameRoom.status !== "playing") {
       logger.debug(`GameRoom ${gameRoomId} not in playing state`, {
         status: gameRoom?.status,
       });
       return;
     }
-    // emit game room's stakeAmount + winAmount, Number of player. 
-    let stakeAmount = gameRoom.stakeAmun;
-    let winAmount = gameRoom.winAmount;
-    let numberOfPlayers = gameRoom.numberOfPlayers;
-    io.to(gameRoomId).emit("Game-details", { stakeAmount, winAmount, numberOfPlayers });
+
     let drawnNumbers = gameRoom.drawnNumbers || [];
     const drawOptions = await resolveRobotDrawOptions(gameRoom, gameRoomId);
     const drawnNumber = drawNumber(drawnNumbers, drawOptions);
@@ -90,8 +83,8 @@ const startNumberCallingLoop = async (io, gameRoomId) => {
     try {
       // Use cached settings to avoid per-tick DB queries
       const appSettings = await getAppSettings().catch(() => null);
-      /// nextTickInterval = 4000;
-      nextTickInterval = 0.01;
+      nextTickInterval = (appSettings?.bingo?.callInterval || 4) * 1000;
+
       if (isNumberCallingInProgress(gameRoomId)) {
         logger.warn(
           `Previous callBingoNumber still in progress for ${gameRoomId}, skipping this tick`

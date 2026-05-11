@@ -19,9 +19,9 @@ const startCase = (input) =>
 
 const DEFAULT_SETTINGS = {
   identity: {
-    appName: "Big Bingo",
-    appNameLocalized: "Big Bingo",
-    shortName: "Big Bingo",
+    appName: "",
+    appNameLocalized: "",
+    shortName: "",
     tagline: "Play. Win. Celebrate.",
   },
   branding: {
@@ -36,51 +36,11 @@ const DEFAULT_SETTINGS = {
     botName: CONFIG.botUsername
       ? `${startCase(normalizeHandle(CONFIG.botUsername))} Bot`
       : "",
-    botUserName: normalizeHandle(CONFIG.botUsername) || "",
-    supportUserName: normalizeHandle(CONFIG.supportUsername) || "",
+    botUserName:
+      normalizeHandle(CONFIG.botUsername) || "",
+    supportUserName:
+      normalizeHandle(CONFIG.supportUsername) || "",
     supportChannelUrl: CONFIG.miniAppUrl || "",
-  },
-  botPayments: {
-    deposit: {
-      methods: {
-        cbe: true,
-        telebirr: true,
-        abyssinia: true,
-        cbebirr: true,
-        dashen: true,
-        telebirr_online: true,
-        cbe_online: true,
-      },
-    },
-  },
-  paymentAccounts: {
-    manual: [
-      {
-        provider: "cbe",
-        accountNumber: process.env.AGENT_CBE || "comming soon",
-        accountName: process.env.AGENT_NAME_CBE || process.env.AGENT_NAME || "comming soon",
-      },
-      {
-        provider: "telebirr",
-        accountNumber: process.env.AGENT_PHONE || "comming soon",
-        accountName: process.env.AGENT_NAME || "comming soon",
-      },
-      {
-        provider: "abyssinia",
-        accountNumber: process.env.AGENT_ABYSSINIA_ACCOUNT || "comming soon",
-        accountName: process.env.AGENT_NAME_ABYSSINIA || process.env.AGENT_NAME || "comming soon",
-      },
-      {
-        provider: "cbebirr",
-        accountNumber: process.env.AGENT_CBEBIRR_ACCOUNT || "comming soon",
-        accountName: process.env.AGENT_NAME_CBEBIRR || process.env.AGENT_NAME || "comming soon",
-      },
-      {
-        provider: "dashen",
-        accountNumber: process.env.AGENT_DASHEN_ACCOUNT || "comming soon",
-        accountName: process.env.AGENT_NAME_DASHEN || process.env.AGENT_NAME || "comming soon",
-      },
-    ],
   },
   leaderboard: {
     enabled: true,
@@ -156,15 +116,12 @@ const buildSettingsFromDoc = (doc) => {
       ? doc.robotEnabledGlobal
       : DEFAULT_SETTINGS.robotEnabledGlobal;
   const bingo = mergeSection(DEFAULT_SETTINGS.bingo, doc.bingo);
-  const botPayments = mergeSection(DEFAULT_SETTINGS.botPayments, doc.botPayments);
-  const paymentAccounts = mergeSection(DEFAULT_SETTINGS.paymentAccounts, doc.paymentAccounts);
 
   return {
     identity,
     branding,
     bot,
-    botPayments,
-    paymentAccounts,
+
     walletRules,
     depositBonus,
     promoBanner,

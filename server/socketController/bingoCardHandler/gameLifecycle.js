@@ -352,29 +352,8 @@ const jackpotResult = await jackpotService.awardJackpot(
     }
 
     // ──────── Game Completion & Results Emission ────────
-    
-    const globalResultPayload = {
-      winners: eligibleWinners.map((w) => w.userId),
-      winningCards: eligibleWinners.map((w) => w.cardId),
-      winningCombos: eligibleWinners.map((w) => w.winningCombo),
-      winningCardGrids: eligibleWinners.map((w) => w.cardGrid),
-      firstNames: winnersWithDetails.map((w) => w.firstName),
-      prizes: eligibleWinners.map(() => prizePerWinner),
-      drawnNumbers: gameRoom.drawnNumbers,
-      numberOfPlayers: totalCards,
-      winAmount,
-    };
 
-    logger.info(`Game finished in room ${gameRoomId}. Winners: ${globalResultPayload.winningCards.length}`, {
-      winnerIds: globalResultPayload.winners,
-      cardIds: globalResultPayload.winningCards,
-      gridsCount: globalResultPayload.winningCardGrids.length
-    });
-
-    // Notify ALL players (including watchers) of game completion
-    io.to(gameRoomId).emit("game_finished", globalResultPayload);
-
-    // Notify individual players of their specific result
+    // Notify all players of game result
     for (const reservation of reservations) {
       const userId = reservation.userId.toString();
       const userCards = reservation.cardIds;
@@ -384,15 +363,34 @@ const jackpotResult = await jackpotService.awardJackpot(
       const userPrize = isWinner ? prizePerWinner : 0;
       const userLoss = isWinner ? 0 : gameRoom.stakeAmount * userCards.length;
 
+      const winnerCards = eligibleWinners
+        .filter((w) => w.userId.toString() === userId)
+        .map((w) => w.cardId);
+
+      const winningCombos = eligibleWinners
+        .filter((w) => w.userId.toString() === userId)
+        .map((w) => w.winningCombo);
+
+      const winningCardGrids = eligibleWinners
+        .filter((w) => w.userId.toString() === userId)
+        .map((w) => w.cardGrid);
+
       const payload = {
-        ...globalResultPayload,
         result: isWinner ? "Won" : "Lost",
+        winners: eligibleWinners.map((w) => w.userId),
+        winningCards: eligibleWinners.map((w) => w.cardId),
+        winningCombos: eligibleWinners.map((w) => w.winningCombo),
+        firstNames: winnersWithDetails.map((w) => w.firstName),
+        prizes: eligibleWinners.map(() => prizePerWinner),
+        drawnNumbers: gameRoom.drawnNumbers,
+        numberOfPlayers: totalCards,
+        winAmount,
+        winningCardGrids: eligibleWinners.map((w) => w.cardGrid),
         userPrize,
         userLoss,
       };
 
-      // TARGETED EMISSION - Send ONLY to the specific user
-      io.to(userId).emit(`game_over_${userId}`, payload);
+      io.to(gameRoomId).emit(`game_over_${userId}`, payload);
     }
 
     io.to(gameRoomId).emit("cards", await fetchCardStatuses(gameRoomId));

@@ -20,7 +20,7 @@ const {
  */
 const reserveCards = async (io, { roomId, cardIds, userId, playMode }) => {
     try {
-        if (!roomId || !Array.isArray(cardIds) || !userId) {
+        if (!roomId || !Array.isArray(cardIds) || cardIds.length === 0 || !userId) {
             return { error: { message: "Invalid roomId, cardIds, or userId" } };
         }
 
@@ -328,108 +328,6 @@ const refreshRoomState = async (io, roomId, gameRoom) => {
 }
 
 /**
- * Handles card unreservation for a user
- */
-const unreserveCards = async (io, { roomId, cardIds, userId }) => {
-    try {
-        if (!roomId || !Array.isArray(cardIds) || cardIds.length === 0 || !userId) {
-            return { error: { message: "Invalid request data" } };
-        }
-
-        const roomService = require("./roomService");
-        const gameRoom = await roomService.getOrCreateRoomForStake(io, { stakeAmount: null, roomId, createIfNotFound: false });
-
-        if (!gameRoom || ["playing", "completed"].includes(gameRoom.status)) {
-            return { error: { message: "Game is already in progress, completed, or room not found" } };
-        }
-
-        const reservation = await Reservation.findOne({
-            roomId,
-            userId,
-            status: "active",
-        });
-
-        if (!reservation) {
-            return { error: { message: "Reservation not found" } };
-        }
-
-        const cardsToRemove = cardIds.filter(id => reservation.cardIds.map(String).includes(id.toString()));
-        
-        if (cardsToRemove.length === 0) {
-             return { error: { message: "You don't have these cards reserved" } };
-        }
-
-        const refundAmount = cardsToRemove.length * gameRoom.stakeAmount;
-
-        const session = await mongoose.startSession();
-        try {
-            await session.withTransaction(async () => {
-                // Remove cards from reservation
-                reservation.cardIds = reservation.cardIds.filter(id => !cardsToRemove.includes(id.toString()));
-                if (reservation.cardIds.length === 0) {
-                    await Reservation.deleteOne({ _id: reservation._id }).session(session);
-                } else {
-                    await reservation.save({ session });
-                }
-
-                // Delete locks
-                await CardLock.deleteMany({
-                    roomId: new mongoose.Types.ObjectId(roomId),
-                    userId: new mongoose.Types.ObjectId(userId),
-                    cardId: { $in: cardsToRemove }
-                }).session(session);
-
-                // Refund wallet
-                if (refundAmount > 0) {
-                    await User.updateOne(
-                        { _id: userId },
-                        { $inc: { wallet: refundAmount } },
-                        { session }
-                    );
-                    
-                    const freshUser = await User.findById(userId).session(session);
-                    const isRobot = freshUser.isRobot || freshUser.role === 'robot';
-                    
-                    const gameTx = new GameTransaction({
-                        userId,
-                        userType: isRobot ? UserType.ROBOT : UserType.USER,
-                        type: GameTransactionType.WIN, 
-                        gameType: GameType.BINGO,
-                        roomId,
-                        amount: refundAmount,
-                        stakeAmount: gameRoom.stakeAmount,
-                        cardIds: cardsToRemove,
-                        walletBefore: freshUser.wallet - refundAmount,
-                        walletAfter: freshUser.wallet,
-                        description: `Unreserved ${cardsToRemove.length} card(s) in room ${roomId}`,
-                    });
-                    await gameTx.save({ session });
-                }
-            });
-        } catch (error) {
-            throw error;
-        } finally {
-            session.endSession();
-        }
-
-        const freshUser = await User.findById(userId).select("wallet bonus");
-        io.to(userId.toString()).emit("walletUpdate", { wallet: freshUser.wallet, bonus: freshUser.bonus });
-
-        await refreshRoomState(io, roomId, gameRoom);
-
-        return {
-            success: true,
-            unreservedCardIds: cardsToRemove,
-            message: `Successfully unreserved ${cardsToRemove.length} card(s).`,
-        };
-    } catch (error) {
-        logger.error(`Error unreserving cards for room ${roomId}`, error);
-        return { error: { message: "Failed to unreserve cards" } };
-    }
-};
-
-/**
-
  * Fetches and aggregates reserved cards for a user in a room
  */
 const getReservedCards = async ({ userId, roomId }) => {
@@ -491,6 +389,5 @@ const getReservedCards = async ({ userId, roomId }) => {
 
 module.exports = {
     reserveCards,
-    unreserveCards,
     getReservedCards
 };
