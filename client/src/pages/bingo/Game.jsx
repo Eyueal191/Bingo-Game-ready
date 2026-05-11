@@ -12,6 +12,7 @@ import {
   GameControls,
   GameHeader,
   GameSettingsModal,
+  GameCounter,
 } from "../../components/Game";
 import BingoLoading from "../../components/common/BingoLoading";
 import { useAppStore } from "../../store";
@@ -102,6 +103,9 @@ function Game() {
     return () => clearTimeout(timeout);
   }, [animationTrigger]);
 
+
+
+
   if (authLoading) {
     return <BingoLoading message="መጫወቻው እየተዘጋጀ ነው..." size="large" />;
   }
@@ -111,7 +115,7 @@ function Game() {
   // 4. View Rendering (Pure Layout)
   return (
     <div
-      className={`fixed inset-0 overflow-hidden bg-[#1A0A2E] ${theme === "dark" ? "text-white" : "text-black"
+      className={`fixed inset-0 overflow-hidden bg-[#21103D] ${theme === "dark" ? "text-white" : "text-black"
         }`}
     >
       <div className="w-full h-full mx-auto p-1 lg:p-2 xl:p-3 max-w-7xl relative flex flex-col overflow-hidden">
@@ -119,7 +123,7 @@ function Game() {
           <BingoLoading message="Loading..." size="large" />
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-12">
               {/* PERMANENT FULL-WIDTH HEADER */}
               <div className="mb-2">
                 <GameHeader
@@ -131,18 +135,27 @@ function Game() {
                 />
               </div>
 
+              {/* Game Counter / Waiting State */}
+              <div className="flex justify-center my-1">
+                <GameCounter
+                  countdown={countdown}
+                  waitingForCounter={waitingForCounter}
+                  gameStarted={gameStarted || liveResults.length > 0}
+                />
+              </div>
+
               <div className="flex flex-row w-full my-1 gap-1 sm:gap-2">
 
                 {/* LEFT GRID */}
-                <div className="w-[50%] sm:w-[40%] lg:w-[30%] min-w-0">
-                  <div className="bg-bingo-bg rounded-lg p-0 sm:p-0.5">
-                    <BingoGrid
-                      numbers={Array.from({ length: 75 }, (_, index) => index + 1)}
-                      liveResults={liveResults}
-                      animationTrigger={animationTrigger}
-                      shuffling={shuffling}
-                      isMuted={isMuted}
-                    />
+                <div className="w-[50%] sm:w-[40%] lg:w-[30%] min-w-0 flex flex-col">
+                  <div className="bg-bingo-bg rounded-lg p-0 sm:p-0.5 flex-1 flex flex-col">
+                    <div className="flex-1">
+                      <BingoGrid
+                        numbers={Array.from({ length: 75 }, (_, index) => index + 1)}
+                        liveResults={liveResults}
+                        animationTrigger={animationTrigger}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -225,21 +238,21 @@ function Game() {
                 }
                 disqualifiedCards={disqualifiedCards}
                 isMuted={isMuted}
+                winPattern={winPattern}
               />
             )}
-            
-            <div className="fixed bottom-0 left-0 right-0 p-2 z-10 bg-gradient-to-t from-bingo-bg to-transparent">
-                <GameControls
-                    handleLeave={handleLeave}
-                    handleRefresh={handleRefresh}
-                    isWatcher={isWatcher}
-                />
+
+            <div className="fixed bottom-0 left-0 right-0 p-1 z-10 bg-gradient-to-t from-bingo-bg/90 to-transparent">
+              <GameControls
+                handleLeave={handleLeave}
+                handleRefresh={handleRefresh}
+                isWatcher={isWatcher}
+              />
             </div>
           </>
         )}
       </div>
     </div>
   );
-}
-
+};
 export default Game;

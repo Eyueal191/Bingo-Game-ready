@@ -227,7 +227,7 @@ const BingoLoading = ({
   };
 
   return (
-    <div className={`flex flex-col !items-center !mt-20 !justify-center ${currentSize.spacing} ${currentSize.container} ${className}`}>
+    <div className={`flex flex-col !items-center !justify-center min-h-screen bg-[#160a29] ${currentSize.spacing} ${currentSize.container} ${className}`}>
       {renderContent()}
     </div>
   );

@@ -39,15 +39,13 @@ const CardListHeader = ({
   };
 
   return (
-    <Box
+    <Box className="bg-[#160a29]"
       sx={{
         width: "100%",
         flexShrink: 0,
         zIndex: 20,
-        bgcolor: "transparent",
         display: "flex",
         flexDirection: "column",
-        pb: 0.5,
       }}
     >
       {/* Top Action Bar (Back / Refresh) matching user target image */}

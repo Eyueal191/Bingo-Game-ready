@@ -67,7 +67,7 @@ export const useNavbar = () => {
   // Branding palette sourced from CSS variables in index.css
   const colors = {
     background: "var(--color-bingo-primary)",
-    navGradient: "linear-gradient(135deg, var(--color-bingo-bg) 0%, var(--color-bingo-background) 100%)",
+    navGradient: "#21103D",
     surface: "var(--color-bingo-surface)",
     surfaceAlt: "var(--color-bingo-card-alt)",
     border: "rgba(255, 255, 255, 0.1)",

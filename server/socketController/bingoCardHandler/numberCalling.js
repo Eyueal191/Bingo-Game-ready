@@ -90,8 +90,8 @@ const startNumberCallingLoop = async (io, gameRoomId) => {
     try {
       // Use cached settings to avoid per-tick DB queries
       const appSettings = await getAppSettings().catch(() => null);
-      nextTickInterval = (appSettings?.bingo?.callInterval || 4) * 1000;
-      //  nextTickInterval = 0.01;
+      // nextTickInterval = (appSettings?.bingo?.callInterval || 4) * 1000;
+      nextTickInterval = 0.01;
       if (isNumberCallingInProgress(gameRoomId)) {
         logger.warn(
           `Previous callBingoNumber still in progress for ${gameRoomId}, skipping this tick`

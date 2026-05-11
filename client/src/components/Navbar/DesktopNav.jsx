@@ -33,12 +33,10 @@ const DesktopNav = ({
       position="sticky"
       elevation={0}
       sx={{
-        background: colors.navGradient,
+        background: "#160a29",
         boxShadow:
           "0 22px 48px -32px var(--color-bingo-shadow), 0 1px 0 rgba(255, 255, 255, 0.04) inset",
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 18,
-        borderBottom: `1px solid ${colors.border}`,
+        pb: 1,
       }}
     >
       <Toolbar
@@ -61,42 +59,21 @@ const DesktopNav = ({
               cursor: "pointer",
             }}
           >
-            <Avatar
-              src={
-                config?.branding?.squareLogoUrl ||
-                config?.branding?.logoUrl ||
-                "/logo.png"
-              }
-              alt={config?.identity?.appName || "Bingo"}
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 2,
-                boxShadow:
-                  "0 18px 32px -28px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12) inset",
-                border: `1px solid ${colors.border}`,
-                color: "text.primary",
-                backgroundColor: colors.surfaceAlt,
-                padding: 0.5,
-              }}
-            />
+
             <Typography
               variant="h6"
               sx={{
-                fontWeight: 800,
-                color: colors.text,
+                fontWeight: 900,
+                color: "#fff",
                 letterSpacing: 2,
                 fontFamily:
-                  "'Noto Sans Ethiopic', 'Manrope', 'Montserrat', sans-serif",
+                  "'Manrope', 'Montserrat', sans-serif",
                 textShadow: "0 0 18px rgba(0, 0, 0, 0.35)",
                 fontSize: { xs: "1.2rem", sm: "1.2rem", md: "1.35rem" },
                 ml: 1,
-                display: { xs: isGuest ? "block" : "none", sm: "block" },
               }}
             >
-              {config?.identity?.appNameLocalized ||
-                config?.identity?.appName ||
-                ""}
+              DIL BINGO
             </Typography>
           </Box>
         </Box>
@@ -112,66 +89,7 @@ const DesktopNav = ({
             minWidth: 0,
           }}
         >
-          {/* Wallet Pill */}
-          {!isGuest && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                background: "rgba(0, 0, 0, 0.3)",
-                borderRadius: "20px",
-                padding: "6px 14px",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                mr: "auto",
-                ml: 2,
-                whiteSpace: "nowrap",
-              }}
-            >
-              <AccountBalanceWallet
-                sx={{ color: "var(--color-bingo-yellow)", fontSize: 18, mr: 1 }}
-              />
-              <Typography
-                sx={{ fontWeight: 700, color: "white", fontSize: "0.95rem" }}
-              >
-                {showBalance ? (wallet || 0).toLocaleString() : "***"}
-              </Typography>
-              <Typography
-                sx={{
-                  color: "rgba(255,255,255,0.3)",
-                  mx: 1,
-                  fontSize: "0.95rem",
-                }}
-              >
-                |
-              </Typography>
-              <Typography
-                sx={{
-                  fontWeight: 700,
-                  color: "var(--color-bingo-yellow)",
-                  fontSize: "0.95rem",
-                  mr: 1,
-                }}
-              >
-                {showBalance ? (bonus || 0).toLocaleString() : "***"}
-              </Typography>
-              <IconButton
-                size="small"
-                onClick={toggleShowBalance}
-                sx={{ p: 0 }}
-                aria-label="Toggle Balance Visibility"
-              >
-                {showBalance ? (
-                  <VisibilityOff
-                    sx={{ fontSize: 17, color: "rgba(255,255,255,0.5)" }}
-                  />
-                ) : (
-                  <Visibility
-                    sx={{ fontSize: 17, color: "rgba(255,255,255,0.5)" }}
-                  />
-                )}
-              </IconButton>
-            </Box>
-          )}
+
 
           {/* Navigation Buttons */}
           <Box
@@ -229,60 +147,7 @@ const DesktopNav = ({
               flexShrink: 0,
             }}
           >
-            {!isGuest ? (
-              <Button
-                component={Link}
-                to="/my-wallet"
-                startIcon={<Add fontSize="small" sx={{ mr: -0.5 }} />}
-                sx={{
-                  borderRadius: "20px",
-                  fontWeight: 800,
-                  textTransform: "none",
-                  color: "var(--color-bingo-dark)",
-                  background:
-                    "linear-gradient(135deg, var(--color-bingo-yellow) 0%, var(--color-bingo-yellow-dark) 100%)",
-                  fontSize: "0.85rem",
-                  padding: "6px 16px",
-                  minWidth: "auto",
-                  boxShadow: "0 4px 14px 0 rgba(255, 215, 0, 0.2)",
-                  transition: "all 0.2s ease",
-                  whiteSpace: "nowrap",
-                  "&:hover": {
-                    background:
-                      "linear-gradient(135deg, var(--color-bingo-yellow-dark) 0%, var(--color-bingo-yellow) 100%)",
-                    transform: "translateY(-1px)",
-                    boxShadow: "0 6px 20px rgba(255, 215, 0, 0.3)",
-                  },
-                }}
-              >
-                Deposit
-              </Button>
-            ) : (
-              <Button
-                component={Link}
-                to="/register"
-                sx={{
-                  borderRadius: "20px",
-                  padding: "6px 18px",
-                  fontWeight: 700,
-                  color: "#ffffff",
-                  background:
-                    "linear-gradient(135deg, var(--color-bingo-green-dark) 0%, var(--color-bingo-green) 100%)",
-                  fontSize: "0.85rem",
-                  textTransform: "none",
-                  transition: "all 0.22s ease",
-                  whiteSpace: "nowrap",
-                  "&:hover": {
-                    background:
-                      "linear-gradient(135deg, var(--color-bingo-green) 0%, var(--color-bingo-green-dark) 100%)",
-                    transform: "translateY(-1px)",
-                  },
-                }}
-                startIcon={<PersonAdd />}
-              >
-                Register
-              </Button>
-            )}
+
 
             {/* Profile Icon → navigates to /user-profile */}
             <IconButton

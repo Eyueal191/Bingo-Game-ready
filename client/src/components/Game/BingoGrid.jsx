@@ -11,16 +11,8 @@ const getBingoLetter = (number) => {
   if (number >= 46 && number <= 60) return "G";
   return "O";
 };
-const BingoGrid = ({ numbers = [], liveResults = [], shuffling = false, isMuted = false }) => {
-  const [shuffledNumber, setShuffledNumber] = useState(null);
-  const [fastShuffleNums, setFastShuffleNums] = useState([]);
-  const [displayNumbers, setDisplayNumbers] = useState({});
-  const [isFastShuffling, setIsFastShuffling] = useState(false);
-  const audioRef = useRef(null);
-
+const BingoGrid = ({ numbers = [], liveResults = [] }) => {
   const liveSet = useMemo(() => new Set(liveResults || []), [liveResults]);
-  const numbersKey = useMemo(() => numbers.join(","), [numbers]);
-  const liveResultsKey = useMemo(() => JSON.stringify(liveResults || []), [liveResults]);
 
   const isCalled = (num) => {
     if (!liveResults || liveResults.length === 0) return false;
@@ -31,112 +23,6 @@ const BingoGrid = ({ numbers = [], liveResults = [], shuffling = false, isMuted 
     );
   };
 
-  useEffect(() => {
-    if (!audioRef.current) {
-      try {
-        const audio = new Audio("/assets/shuffle.wav");
-        audio.preload = "auto";
-        audio.loop = true;
-        audio.volume = 0.6;
-        audioRef.current = audio;
-      } catch (error) {
-        console.error("Failed to initialize shuffle audio:", error);
-      }
-    }
-
-    if (!shuffling) {
-      setShuffledNumber(null);
-      setFastShuffleNums([]);
-      setDisplayNumbers({});
-      setIsFastShuffling(false);
-      if (audioRef.current) {
-        try {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        } catch (_) {
-          /* ignore */
-        }
-      }
-      return;
-    }
-
-    const uncalled = numbers.filter((n) => !isCalled(n));
-    if (uncalled.length === 0) {
-      setShuffledNumber(null);
-      setFastShuffleNums([]);
-      setDisplayNumbers({});
-      setIsFastShuffling(false);
-      return;
-    }
-
-    setIsFastShuffling(true);
-    let shuffleCount = 0;
-    const maxShuffleRounds = 30;
-    const numbersToShuffle = Math.min(40, uncalled.length);
-
-    const fastShuffleInterval = setInterval(() => {
-      shuffleCount += 1;
-      const shuffledIndices = new Set();
-      const shuffledNumbers = [];
-      while (shuffledNumbers.length < numbersToShuffle) {
-        const randomIndex = Math.floor(Math.random() * uncalled.length);
-        if (!shuffledIndices.has(randomIndex)) {
-          shuffledIndices.add(randomIndex);
-          shuffledNumbers.push(uncalled[randomIndex]);
-        }
-      }
-      setFastShuffleNums(shuffledNumbers);
-
-      const nextDisplay = {};
-      shuffledNumbers.forEach((num) => {
-        nextDisplay[num] = getRandomInt(1, 75);
-      });
-      setDisplayNumbers(nextDisplay);
-
-      if (shuffleCount >= maxShuffleRounds) {
-        clearInterval(fastShuffleInterval);
-        setIsFastShuffling(false);
-        setFastShuffleNums([]);
-        setDisplayNumbers({});
-      }
-    }, 80);
-
-    const selectTimeout = setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * uncalled.length);
-      setShuffledNumber(uncalled[randomIndex]);
-    }, 80 * maxShuffleRounds + 400);
-
-    if (audioRef.current) {
-      try {
-        if (!isMuted) {
-          audioRef.current.play().catch((err) => {
-            console.warn("Shuffle audio play prevented:", err);
-          });
-        } else {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-      } catch (error) {
-        console.error("Shuffle audio control failed:", error);
-      }
-    }
-
-    return () => {
-      clearInterval(fastShuffleInterval);
-      clearTimeout(selectTimeout);
-      setIsFastShuffling(false);
-      if (audioRef.current) {
-        try {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        } catch (_) {
-          /* ignore */
-        }
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shuffling, isMuted, numbersKey, liveResultsKey]);
-
   const lastCalledNumber =
     Array.isArray(liveResults) && liveResults.length > 0
       ? liveResults[liveResults.length - 1]
@@ -145,13 +31,7 @@ const BingoGrid = ({ numbers = [], liveResults = [], shuffling = false, isMuted 
   const renderNumberCell = (number, variant = "desktop") => {
     const numberCalled = isCalled(number);
     const isLastCalled = lastCalledNumber === number;
-    const isSelectedShuffle =
-      number === shuffledNumber && !numberCalled && !isFastShuffling;
-    const isFastShuffleEntry =
-      fastShuffleNums.includes(number) && isFastShuffling && !numberCalled;
-    const displayValue = isFastShuffleEntry
-      ? displayNumbers[number] || number
-      : number;
+    
     const baseClasses =
       variant === "mobile"
         ? "w-full aspect-square flex items-center justify-center font-bold text-[10px] rounded-[3px] transition-all duration-300"
@@ -163,15 +43,11 @@ const BingoGrid = ({ numbers = [], liveResults = [], shuffling = false, isMuted 
       stateClasses = isLastCalled
         ? "bg-[#10b981] text-white shadow-[0_0_20px_rgba(16,185,129,0.6)] scale-110 z-10 animate-pulse rounded-md border border-emerald-300/50"
         : "bg-[#f59e0b] text-white border border-amber-400/30 rounded-md shadow-[0_2px_10px_rgba(245,158,11,0.3)]";
-    } else if (isSelectedShuffle) {
-      stateClasses = "bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/50 animate-bounce-slow rounded-md";
-    } else if (isFastShuffleEntry) {
-      stateClasses = "bg-white/5 text-white/20 border border-dashed border-white/10 rounded-md";
     }
 
     return (
       <span key={number} className={`${baseClasses} ${stateClasses} cursor-default`}>
-        {displayValue}
+        {number}
       </span>
     );
   };

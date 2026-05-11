@@ -101,8 +101,8 @@ export const useAppStore = create((set, get) => ({
   isMuted: (() => {
     try {
       const saved = localStorage.getItem("isMuted");
-      return saved ? JSON.parse(saved) : true;
-    } catch { return true; }
+      return saved ? JSON.parse(saved) : false;
+    } catch { return false; }
   })(),
   setIsMuted: (isMuted) => {
     localStorage.setItem("isMuted", JSON.stringify(isMuted));

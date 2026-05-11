@@ -50,7 +50,7 @@ const CardList = () => {
     getCardBgColor(card, selectedCards, userReservedCardIds, userId);
 
   return (
-    <Box
+    <Box className="bg-[#160a29]"
       sx={{
         position: "fixed",
         top: 0,
@@ -62,6 +62,7 @@ const CardList = () => {
         overflow: "hidden",
         zIndex: 1,
         background: "transparent",
+        pb: "env(safe-area-inset-bottom)",
       }}
     >
       <CardListHeader

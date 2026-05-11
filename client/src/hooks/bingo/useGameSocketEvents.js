@@ -7,6 +7,7 @@ import {
 } from "../../utils/bingoUtils";
 import { voiceOptions } from "../../utils/voiceOptions";
 
+
 export const useGameSocketEvents = (socket, roomId, userId, disqualificationStorageKey, watcherStorageKey) => {
   useEffect(() => {
     if (!socket || !roomId || !userId) return;
@@ -19,7 +20,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
       const store = getStore();
       const prefixedNum = getPrefixedBingoValue(speakNumber);
       if (!prefixedNum) return;
-      
+
       if (store.isMuted) return;
 
       const selectedVoice = voiceOptions.find(
@@ -94,7 +95,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
 
       store.setGameStarted(true);
       store.setWaitingForCounter(false);
-      
+
       const currentStake = store.roomData.stakeAmount;
       store.setUpdatedStakeAmount(gameStakeAmount || currentStake);
       store.setNumberOfPlayers(newPlayers || 0);
@@ -135,7 +136,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
         // We handle this via a small emit here to keep it decoupled.
         socket.emit("get_reserved_cards", { userId, roomId }, (response) => {
           if (Array.isArray(response?.cardIds) && JSON.stringify(store.storedCards) !== JSON.stringify(response.cardIds)) {
-             store.setStoredCards(response.cardIds);
+            store.setStoredCards(response.cardIds);
           }
         });
       }
@@ -189,7 +190,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
         store.setStoredCards([]);
         store.setIsManualMode(false);
         store.setSharedSelectedNumbers(new Set(["F"]));
-        
+
         if (disqualificationStorageKey) {
           localStorage.setItem(
             disqualificationStorageKey,
@@ -209,15 +210,10 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
       store.setWinningCombos(finalCombos || []);
       store.setWinningCardGrids(finalGrids || []);
       store.setFirstNames(winnerNames || []);
-      
+
       store.setUserPrize(wasDisqualified ? 0 : userPrize || 0);
       store.setUserLoss(userLoss || 0);
 
-      if (wasDisqualified) {
-        toast.info(disqualificationReason || "You're observing the rest of this round. Wait for the next game to rejoin.");
-      } else {
-        toast.success(`ጨዋታው አለቀ እንደገና ይጫወቱ! Result: ${gameResult}. አሸናፊ ካርተላ ${winningCardList?.join(", ")}`);
-      }
       store.setLoading(false);
     };
 
@@ -240,7 +236,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
       store.setCurrentNumber(null);
       store.setPrefixedNumber(null);
       store.setAnimationTrigger(false);
-      
+
       if (typeof nextStake === "number" && nextStake > 0) {
         store.setUpdatedStakeAmount(nextStake);
       }
@@ -268,8 +264,8 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
         const fallbackCards = Array.isArray(cards)
           ? cards
           : store.disqualifiedCards.length > 0
-          ? store.disqualifiedCards
-          : store.storedCards;
+            ? store.disqualifiedCards
+            : store.storedCards;
         const finalMessage = message || DEFAULT_DISQUALIFICATION_MESSAGE;
         const shouldWatchOnly = Boolean(disqualifiedFlag || watcherOnly);
 
@@ -281,7 +277,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
           store.setStoredCards([]);
           store.setIsManualMode(false);
           store.setSharedSelectedNumbers(new Set(["F"]));
-          
+
           if (disqualificationStorageKey) {
             localStorage.setItem(
               disqualificationStorageKey,
@@ -311,7 +307,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
         winAmount,
       } = payload;
       const store = getStore();
-      
+
       // Update global game data for everyone (including watchers)
       if (winnerList && winnerList.length > 0) store.setWinners(winnerList);
       if (winningCardList && winningCardList.length > 0) store.setWinningCards(winningCardList);
@@ -320,10 +316,10 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
       if (finalCombos && finalCombos.length > 0) store.setWinningCombos(finalCombos);
       if (finalGrids && finalGrids.length > 0) store.setWinningCardGrids(finalGrids);
       if (winnerNames && winnerNames.length > 0) store.setFirstNames(winnerNames);
-      
+
       if (winAmount !== undefined) store.setWinAmount(winAmount || 0);
       if (totalCards !== undefined) store.setNumberOfPlayers(totalCards || 0);
-      
+
       // Only set finishedGame to true if not already handled by game_over event
       if (!store.finishedGame) {
         store.setFinishedGame(true);

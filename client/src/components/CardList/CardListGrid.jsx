@@ -19,8 +19,6 @@ const CardListGrid = ({
                 flexDirection: "column",
                 background: "#1A0A2E",
                 alignItems: "center",
-                borderRadius: "10px",
-                marginTop: "6px",
                 padding: "8px",
             }}
         >

@@ -17,9 +17,9 @@ const AnimatedCounter = ({ value, duration = 2000 }) => {
   useEffect(() => {
     let startTimestamp = null;
     let animationFrameId;
-    
+
     const startValue = prevValue.current;
-    
+
     if (startValue === value) {
       setCount(value);
       return;
@@ -31,11 +31,11 @@ const AnimatedCounter = ({ value, duration = 2000 }) => {
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / animDuration, 1);
-      
+
       const easeProgress = 1 - Math.pow(1 - progress, 4);
-      
+
       setCount(Math.floor(startValue + distance * easeProgress));
-      
+
       if (progress < 1) {
         animationFrameId = window.requestAnimationFrame(step);
       } else {
@@ -43,9 +43,9 @@ const AnimatedCounter = ({ value, duration = 2000 }) => {
         prevValue.current = value;
       }
     };
-    
+
     animationFrameId = window.requestAnimationFrame(step);
-    
+
     return () => window.cancelAnimationFrame(animationFrameId);
   }, [value, duration]);
 
@@ -55,7 +55,7 @@ const AnimatedCounter = ({ value, duration = 2000 }) => {
 const GameRooms = () => {
   const { rooms, isLoading, handleJoinGame, platformStats } = useGameRooms();
   const { config } = useAppConfig();
-  
+
   const appName = config?.identity?.appName || "";
 
   if (isLoading) {
@@ -84,7 +84,7 @@ const GameRooms = () => {
   const targetWinners = basewinners + (platformStats?.winnersToday || 0);
 
   return (
-    <MainContainer className="dynamic-bg">
+    <MainContainer className="bg-[#160a29]">
       <Box
         sx={{
           width: "100%",
@@ -109,9 +109,8 @@ const GameRooms = () => {
               textShadow: "0 2px 10px rgba(0,0,0,0.3)"
             }}
           >
-            Welcome to <br/>
-            <span style={{ color: "var(--color-bingo-yellow, #FFB800)" }}>{appName}</span>{" "}
-            <span style={{ color: "var(--color-bingo-yellow, #FFB800)" }}>Bingo</span>
+            Well Come to <br />
+            <span style={{ color: "var(--color-bingo-yellow, #FFB800)" }}>Dil Bingo</span>
           </Typography>
         </Box>
 
@@ -125,21 +124,21 @@ const GameRooms = () => {
             boxShadow: "0 10px 40px rgba(0,0,0,0.5)"
           }}
         >
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: "#fff", 
-              textAlign: "center", 
-              mb: 3.5, 
-              display: "flex", 
-              alignItems: "center", 
-              justifyContent: "center", 
+          <Typography
+            variant="h6"
+            sx={{
+              color: "#fff",
+              textAlign: "center",
+              mb: 3.5,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               gap: 1.5,
               fontWeight: 700,
               fontSize: { xs: "1.2rem", sm: "1.3rem" }
             }}
           >
-            <PlayArrowOutlinedIcon sx={{ color: "var(--color-bingo-yellow, #FFB800)", fontSize: "1.5rem" }} /> 
+            <PlayArrowOutlinedIcon sx={{ color: "var(--color-bingo-yellow, #FFB800)", fontSize: "1.5rem" }} />
             Choose Your Stake
           </Typography>
 
@@ -164,11 +163,11 @@ const GameRooms = () => {
                     "&:hover": {
                       transform: "translateY(-3px)",
                       boxShadow: "0 8px 25px rgba(0,0,0,0.4)",
-                      background: getButtonGradient(index), 
+                      background: getButtonGradient(index),
                     }
                   }}
                 >
-                  <PlayArrowOutlinedIcon sx={{ mr: 1.5, opacity: 0.9, fontSize: "1.8rem" }} /> 
+                  <PlayArrowOutlinedIcon sx={{ mr: 1.5, opacity: 0.9, fontSize: "1.8rem" }} />
                   Play {room.stakeAmount}
                 </Button>
               ))}
