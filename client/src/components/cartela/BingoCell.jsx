@@ -13,14 +13,14 @@ const BingoCell = ({
   const displayNumber = number === "F" || number === "0" ? "*" : number;
 
   let cellStyles = "";
-  
+
   // Determine base cell style
   if (isWinning) {
-    cellStyles = "bg-bingo-secondary shadow-sm text-white";
+    cellStyles = "bg-green-500 shadow-sm text-white";
   } else if (isMarked) {
     cellStyles = isAutoMode
-      ? "bg-bingo-focus shadow-sm text-white"
-      : "bg-bingo-secondary shadow-sm text-white";
+      ? "bg-green-500 shadow-sm text-white"
+      : "bg-green-500 shadow-sm text-white";
   } else if (isNormallyCalled) {
     cellStyles = "bg-bingo-focus text-white";
   } else {

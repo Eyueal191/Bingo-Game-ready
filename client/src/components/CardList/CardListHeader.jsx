@@ -136,9 +136,7 @@ const CardListHeader = ({
       {/* Row 4-5: Win pattern + instruction */}
       <div className="flex flex-col items-center py-1">
         <p className="text-bingo-accent-dark text-[14px] font-black tracking-tight leading-tight">
-          {winPattern === "one_line"
-            ? "ጨዋታው በአንድ ዝግ ነው!"
-            : "ጨዋታው በሁለት ዝግ ነው!"}
+          ጨዋታው በአንድ ዝግ ነው!
         </p>
         <p className="text-txt-main font-bold text-[13px] mt-0.5">
           የካርቴላ ቁጥር ይምረጡ

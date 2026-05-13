@@ -98,113 +98,186 @@ function Game() {
   if (authLoading) {
     return <BingoLoading message="መጫወቻው እየተዘጋጀ ነው..." size="large" />;
   }
-
   const isWatcher = isDisqualified || isTemporaryWatcher;
+  if (isWatcher) {
+    return (
+      <div className="w-full h-screen overflow-hidden bg-[#21103D] text-white">
+        <div className="h-full max-w-7xl mx-auto flex flex-col">
 
-  return (
-    <div
-      className={`w-full min-h-[113vh] bg-[#21103D] ${theme === "dark" ? "text-white" : "text-black"
-        }`}
-    >
-      {/* ===================== 100vh GAME AREA ===================== */}
-      <div className="h-[100vh] w-full mx-auto p-1 lg:p-2 xl:p-3 max-w-7xl relative flex flex-col overflow-hidden">
+          {/* HEADER */}
+          <div className="h-[13.5vh] shrink-0 p-1 lg:p-2">
+            <GameHeader
+              updatedStakeAmount={0}
+              numberOfPlayers={numberOfPlayers}
+              winAmount={winAmount}
+              liveResults={liveResults}
+            />
+          </div>
 
-        {loading ? (
-          <BingoLoading message="Loading..." size="large" />
-        ) : (
-          <>
-            {/* HEADER */}
-            <div className="shrink-0">
-              <GameHeader
-                updatedStakeAmount={
-                  isWatcher ? 0 : updatedStakeAmount || stakeAmount
-                }
-                numberOfPlayers={numberOfPlayers}
-                winAmount={winAmount}
-                liveResults={liveResults}
-              />
-            </div>
+          {/* COUNTER */}
+          <div className="h-[6vh] shrink-0 flex items-center justify-center">
+            <GameCounter
+              countdown={countdown}
+              waitingForCounter={waitingForCounter}
+              gameStarted={gameStarted || liveResults.length > 0}
+            />
+          </div>
 
-            {/* COUNTER */}
-            <div className="shrink-0 flex justify-center">
-              <GameCounter
-                countdown={countdown}
-                waitingForCounter={waitingForCounter}
-                gameStarted={gameStarted || liveResults.length > 0}
-              />
-            </div>
+          {/* MODE ROW */}
+          <div className="h-[6vh] shrink-0 flex items-center px-2">
+            <PlayModeToggle
+              isManualMode={isManualMode}
+              toggleMode={toggleMode}
+              isWatcher={isWatcher}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+            />
+          </div>
 
-            {/* MAIN CONTENT */}
-            <div className="flex flex-1 min-h-0 flex-row w-full">
+          {/* MAIN */}
+          <div className="h-[68.5vh] flex flex-row gap-2 p-1 lg:p-2 min-h-0">
 
-              {/* LEFT GRID */}
-              <div className="w-[50%] sm:w-[40%] lg:w-[30%] min-w-0 flex flex-col">
-                <div className="bg-bingo-bg rounded-lg flex-1 flex flex-col">
-                  <BingoGrid
-                    numbers={Array.from({ length: 75 }, (_, i) => i + 1)}
-                    liveResults={liveResults}
-                    animationTrigger={animationTrigger}
-                  />
-                </div>
-              </div>
-
-              {/* RIGHT PANEL */}
-              <div className="w-[50%] sm:w-[60%] lg:w-[70%] flex flex-col min-w-0">
-
-                {/* MODE TOGGLE */}
-                <PlayModeToggle
-                  isManualMode={isManualMode}
-                  toggleMode={toggleMode}
-                  isWatcher={isWatcher}
-                  onOpenSettings={() => setIsSettingsOpen(true)}
+            {/* LEFT GRID */}
+            <div className="w-[45%] lg:w-[30%] flex min-h-0 border border-green-500">
+              <div className="flex-1 bg-bingo-bg rounded-xl overflow-hidden min-h-0 border border-green-500">
+                <BingoGrid
+                  numbers={Array.from({ length: 75 }, (_, i) => i + 1)}
+                  liveResults={liveResults}
+                  animationTrigger={animationTrigger}
                 />
+              </div>
+            </div>
 
-                {/* CURRENT BALL */}
+            {/* RIGHT PANEL */}
+            <div className="w-[55%] lg:w-[70%] flex flex-col gap-2 min-h-0">
+
+              {/* BALL */}
+              <div className="h-[6vh] shrink-0 flex items-center border border-yellow-500">
                 <BingoBallDisplay
                   prefixedNumber={prefixedNumber}
                   animationTrigger={animationTrigger}
                   liveResults={liveResults}
                   gameStarted={gameStarted || liveResults.length > 0}
                 />
-
-                {/* PLAYER CARDS */}
-                <div className="bg-bingo-card-alt backdrop-blur-sm rounded-xl p-0 shadow-lg flex-1 h-[300px] max-h-[300px] overflow-y-auto">
-                  <PlayerCardsSection
-                    storedCards={storedCards}
-                    userId={userId}
-                    roomId={roomId}
-                    liveResults={liveResults}
-                    isManualMode={isManualMode}
-                    sharedSelectedNumbers={sharedSelectedNumbers}
-                    onToggleNumber={handleToggleNumber}
-                    isWatcher={isWatcher}
-                    isDisqualifiedWatcher={isDisqualified}
-                    disqualificationMessage={
-                      disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE
-                    }
-                    disqualifiedCards={disqualifiedCards}
-                    spectatorMessage={temporaryWatcherMessage}
-                    winPattern={winPattern}
-                  />
-                </div>
-
               </div>
-            </div>
-          </>
-        )}
-      </div>
 
-      {/* ===================== 13vh CONTROLS ===================== */}
-      <div className="h-[13vh] w-full flex items-end">
-        <div className="w-full p-1 bg-gradient-to-t from-bingo-bg/90 to-transparent">
+              {/* PLAYER CARDS (FIXED SCROLL CORE) */}
+              <div className="flex-1 min-h-0 bg-bingo-card-alt rounded-xl overflow-y-auto border border-red-500">
+                <PlayerCardsSection
+                  storedCards={storedCards}
+                  userId={userId}
+                  roomId={roomId}
+                  liveResults={liveResults}
+                  isManualMode={isManualMode}
+                  sharedSelectedNumbers={sharedSelectedNumbers}
+                  onToggleNumber={handleToggleNumber}
+                  isWatcher={isWatcher}
+                  isDisqualifiedWatcher={isDisqualified}
+                  disqualificationMessage={disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE}
+                  disqualifiedCards={disqualifiedCards}
+                  spectatorMessage={temporaryWatcherMessage}
+                  winPattern={winPattern}
+                />
+              </div>
+
+            </div>
+          </div>
+
+          {/* FOOTER */}
+          <div className="h-[10vh] shrink-0 p-1 lg:p-2">
+            <GameControls
+              handleLeave={handleLeave}
+              handleRefresh={handleRefresh}
+              isWatcher={isWatcher}
+            />
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="w-full h-screen overflow-hidden bg-[#21103D] text-white">
+      <div className="h-full max-w-7xl mx-auto flex flex-col">
+
+        {/* HEADER */}
+        <div className="h-[13.5vh] shrink-0 p-1 lg:p-2">
+          <GameHeader
+            updatedStakeAmount={updatedStakeAmount || stakeAmount}
+            numberOfPlayers={numberOfPlayers}
+            winAmount={winAmount}
+            liveResults={liveResults}
+          />
+        </div>
+
+        {/* MODE ROW */}
+        <div className="h-[6vh] shrink-0 flex items-center px-2">
+          <PlayModeToggle
+            isManualMode={isManualMode}
+            toggleMode={toggleMode}
+            isWatcher={isWatcher}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+          />
+        </div>
+
+        {/* MAIN */}
+        <div className="h-[74.5vh] flex flex-row gap-2 p-1 lg:p-2 min-h-0">
+
+          {/* LEFT GRID */}
+          <div className="w-[45%] lg:w-[30%] flex min-h-0">
+            <div className="flex-1 bg-bingo-bg rounded-xl overflow-hidden min-h-0">
+              <BingoGrid
+                numbers={Array.from({ length: 75 }, (_, i) => i + 1)}
+                liveResults={liveResults}
+                animationTrigger={animationTrigger}
+              />
+            </div>
+          </div>
+
+          {/* RIGHT PANEL */}
+          <div className="w-[55%] lg:w-[70%] flex flex-col gap-2 min-h-0">
+
+            {/* BALL */}
+            <div className="h-[6vh] shrink-0 flex items-center">
+              <BingoBallDisplay
+                prefixedNumber={prefixedNumber}
+                animationTrigger={animationTrigger}
+                liveResults={liveResults}
+                gameStarted={gameStarted || liveResults.length > 0}
+              />
+            </div>
+
+            {/* PLAYER CARDS */}
+            <div className="flex-1 min-h-0 bg-bingo-card-alt rounded-xl overflow-y-auto">
+              <PlayerCardsSection
+                storedCards={storedCards}
+                userId={userId}
+                roomId={roomId}
+                liveResults={liveResults}
+                isManualMode={isManualMode}
+                sharedSelectedNumbers={sharedSelectedNumbers}
+                onToggleNumber={handleToggleNumber}
+                isWatcher={isWatcher}
+                isDisqualifiedWatcher={isDisqualified}
+                disqualificationMessage={disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE}
+                disqualifiedCards={disqualifiedCards}
+                spectatorMessage={temporaryWatcherMessage}
+                winPattern={winPattern}
+              />
+            </div>
+
+          </div>
+        </div>
+
+        {/* FOOTER */}
+        <div className="h-[10vh] shrink-0 p-1 lg:p-2">
           <GameControls
             handleLeave={handleLeave}
             handleRefresh={handleRefresh}
             isWatcher={isWatcher}
           />
         </div>
-      </div>
 
+      </div>
       {/* ===================== MODALS ===================== */}
       {isSettingsOpen && (
         <GameSettingsModal
@@ -248,6 +321,7 @@ function Game() {
       )}
     </div>
   );
+
 }
 
 export default Game;

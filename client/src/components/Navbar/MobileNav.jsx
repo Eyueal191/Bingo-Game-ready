@@ -16,16 +16,17 @@ import {
   AccountBalanceWallet,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-
+import { useAppConfig } from "../../contexts/AppConfigContext.jsx";
 const MobileNav = ({
   wallet,
   bonus,
   showBalance,
   toggleShowBalance,
   colors,
-  config,
   isGuest,
 }) => {
+
+  const { config } = useAppConfig()
   return (
     <AppBar
       position="sticky"
@@ -71,7 +72,7 @@ const MobileNav = ({
               whiteSpace: "nowrap",
             }}
           >
-            DIL BINGO
+            {config.identity?.appNameLocalized}
           </Typography>
         </Box>
 

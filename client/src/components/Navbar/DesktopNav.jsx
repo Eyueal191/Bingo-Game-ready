@@ -17,7 +17,7 @@ import {
   AccountBalanceWallet,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-
+import { useAppConfig } from "../../contexts/AppConfigContext.jsx";
 const DesktopNav = ({
   navItems,
   wallet,
@@ -25,9 +25,9 @@ const DesktopNav = ({
   showBalance,
   toggleShowBalance,
   colors,
-  config,
   isGuest,
 }) => {
+  const { config } = useAppConfig()
   return (
     <AppBar
       position="sticky"
@@ -73,7 +73,7 @@ const DesktopNav = ({
                 ml: 1,
               }}
             >
-              DIL BINGO
+              {config.identity?.appNameLocalized}
             </Typography>
           </Box>
         </Box>

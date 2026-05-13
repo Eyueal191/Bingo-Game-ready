@@ -48,7 +48,7 @@ const AnimatedCounter = ({ value, duration = 2000 }) => {
 
     return () => window.cancelAnimationFrame(animationFrameId);
   }, [value, duration]);
-
+  const { config } = useAppConfig();
   return <>{count.toLocaleString()}+</>;
 };
 
@@ -110,7 +110,8 @@ const GameRooms = () => {
             }}
           >
             Well Come to <br />
-            <span style={{ color: "var(--color-bingo-yellow, #FFB800)" }}>Dil Bingo</span>
+            <span style={{ color: "var(--color-bingo-yellow, #FFB800)" }}>
+              {config.identity?.appNameLocalized}</span>
           </Typography>
         </Box>
 

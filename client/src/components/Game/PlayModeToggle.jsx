@@ -12,7 +12,11 @@ export const PlayModeToggle = ({
 }) => {
   return (
     <div className="flex items-center justify-between mb-2 px-1 gap-2 w-full">
+      {/*Space taker div*/}
+      <div className="flex-1 w-50" ></div>
+      {/*Right dive */}
 
+      <div className="flex-1 w-50 flex items-center justify-between mb-2 px-1 gap-2 w-full" ></div>
       {/* LEFT: Play Mode Toggle */}
       <div className="flex items-center">
         <button
