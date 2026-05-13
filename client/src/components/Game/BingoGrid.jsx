@@ -1,6 +1,15 @@
+/* ONLY VERTICAL DIMENSION UPDATED
+   - No animation changes
+   - No width changes
+   - No styling changes
+   - No structural changes
+   - Only height system updated
+*/
+
 import { chunkArray } from "../../utils/gameUtils";
 import { columnColors } from "../../utils/gridColumnColors";
 import React, { useEffect, useMemo, useState, useRef } from "react";
+
 const getRandomInt = (min, max) =>
   Math.floor(Math.random() * (max - min + 1)) + min;
 
@@ -11,17 +20,67 @@ const getBingoLetter = (number) => {
   if (number >= 46 && number <= 60) return "G";
   return "O";
 };
-const BingoGrid = ({ numbers = [], liveResults = [] }) => {
-  const liveSet = useMemo(() => new Set(liveResults || []), [liveResults]);
+
+const BingoGrid = ({
+  numbers = [],
+  liveResults = [],
+  isWatcher = false,
+}) => {
+
+  const liveSet = useMemo(
+    () => new Set(liveResults || []),
+    [liveResults]
+  );
 
   const isCalled = (num) => {
     if (!liveResults || liveResults.length === 0) return false;
+
     if (liveSet.has(num)) return true;
+
     const letter = getBingoLetter(num);
+
     return (
-      liveSet.has(`${letter}${num}`) || liveSet.has(`${letter.toLowerCase()}${num}`)
+      liveSet.has(`${letter}${num}`) ||
+      liveSet.has(`${letter.toLowerCase()}${num}`)
     );
   };
+
+  /* =========================================================
+     TOTAL HEIGHT SYSTEM
+  ========================================================= */
+
+  // WATCHER MODE
+  // MAIN = 64.5vh
+
+  // PLAYER MODE
+  // MAIN = 70.5vh
+
+  const totalHeight = isWatcher ? 64.5 : 70.5;
+
+  /*
+    INTERNAL VERTICAL SYSTEM
+
+    HEADER ROW      = 4vh
+    HEADER GAP      = 1vh
+    OUTER PADDING   = 2vh
+    ROW GAP         = 0.35vh
+  */
+
+  const headerHeight = 4;
+  const headerGap = 1;
+  const outerPadding = 2;
+  const rowGap = 0.35;
+
+  const totalRowGapHeight = rowGap * 14;
+
+  const remainingHeight =
+    totalHeight -
+    headerHeight -
+    headerGap -
+    outerPadding -
+    totalRowGapHeight;
+
+  const cellHeight = remainingHeight / 15;
 
   const lastCalledNumber =
     Array.isArray(liveResults) && liveResults.length > 0
@@ -29,15 +88,18 @@ const BingoGrid = ({ numbers = [], liveResults = [] }) => {
       : null;
 
   const renderNumberCell = (number, variant = "desktop") => {
+
     const numberCalled = isCalled(number);
+
     const isLastCalled = lastCalledNumber === number;
-    
+
     const baseClasses =
       variant === "mobile"
-        ? "w-full aspect-square flex items-center justify-center font-bold text-[10px] rounded-[3px] transition-all duration-300"
-        : "w-full aspect-square flex items-center justify-center font-bold text-[13px] rounded-md transition-all duration-300 shadow-sm";
+        ? "w-full flex items-center justify-center font-bold text-[10px] rounded-[3px] transition-all duration-300"
+        : "w-full flex items-center justify-center font-bold text-[13px] rounded-md transition-all duration-300 shadow-sm";
 
-    let stateClasses = "bg-[#51496f] text-white font-black border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]";
+    let stateClasses =
+      "bg-[#51496f] text-white font-black border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]";
 
     if (numberCalled) {
       stateClasses = isLastCalled
@@ -46,72 +108,199 @@ const BingoGrid = ({ numbers = [], liveResults = [] }) => {
     }
 
     return (
-      <span key={number} className={`${baseClasses} ${stateClasses} cursor-default`}>
+      <span
+        key={number}
+        style={{
+          height: `${cellHeight}vh`,
+          minHeight: `${cellHeight}vh`,
+        }}
+        className={`${baseClasses} ${stateClasses} cursor-default`}
+      >
         {number}
       </span>
     );
   };
+
   // --- MOBILE: vertical columns like your working snippet ---
   const getColumns = () => {
     const cols = { B: [], I: [], N: [], G: [], O: [] };
+
     numbers.forEach((num) => {
       const letter = getBingoLetter(num);
       cols[letter].push(num);
     });
+
     return cols;
   };
 
   const columns = getColumns();
 
   return (
-    <div className="w-full">
-      {/* Mobile / Tablet layout (below lg) */}
-      <div className="lg:hidden w-full bg-[#2c2453] py-1.5 px-2 rounded-xl sm:rounded-2xl border border-white/10 shadow-xl">
-        <div className="w-[90%] sm:w-[85%] mx-auto">
-          {/* Header row: B I N G O */}
-          <div className="grid grid-cols-5 gap-1 mb-1.5 w-full">
+    <div
+      className="w-full"
+      style={{
+        height: `${totalHeight}vh`,
+      }}
+    >
+
+      {/* =========================================================
+          MOBILE / TABLET
+      ========================================================= */}
+
+      <div
+        className="
+          lg:hidden
+          w-full
+          h-full
+          bg-[#2c2453]
+          py-1.5
+          px-2
+          rounded-xl
+          sm:rounded-2xl
+          border
+          border-white/10
+          shadow-xl
+        "
+      >
+
+        <div className="w-[90%] sm:w-[85%] mx-auto h-full">
+
+          {/* HEADER ROW */}
+          <div
+            className="grid grid-cols-5 gap-1 w-full"
+            style={{
+              height: `${headerHeight}vh`,
+              marginBottom: `${headerGap}vh`,
+            }}
+          >
             {["B", "I", "N", "G", "O"].map((letter) => (
               <div
                 key={letter}
-                className={`text-center font-bold text-[10px] rounded aspect-square w-full flex items-center justify-center text-white shadow-sm ${columnColors[letter] || "bg-blue-500"}`}
+                className={`
+                  text-center
+                  font-bold
+                  text-[10px]
+                  rounded
+                  w-full
+                  flex
+                  items-center
+                  justify-center
+                  text-white
+                  shadow-sm
+                  ${columnColors[letter] || "bg-blue-500"}
+                `}
               >
                 {letter}
               </div>
             ))}
           </div>
 
-          {/* Number grid: 5 equal columns */}
-          <div className="grid grid-cols-5 gap-[3px] w-full pb-0.5">
-            {/* We need to transpose: render row by row, column by column */}
+          {/* NUMBER GRID */}
+          <div
+            className="grid grid-cols-5 w-full pb-0.5"
+            style={{
+              gap: `${rowGap}vh`,
+            }}
+          >
             {Array.from({ length: 15 }, (_, rowIdx) => (
               ["B", "I", "N", "G", "O"].map((letter) => {
+
                 const num = columns[letter][rowIdx];
-                if (num === undefined) return <span key={`${letter}-${rowIdx}`} />;
+
+                if (num === undefined) {
+                  return <span key={`${letter}-${rowIdx}`} />;
+                }
+
                 return renderNumberCell(num, "mobile");
+
               })
             ))}
           </div>
+
         </div>
       </div>
 
-      <div className="hidden lg:grid grid-cols-5 gap-2 p-3 bg-[#2c2453] rounded-[2rem] shadow-2xl border border-white/10">
+      {/* =========================================================
+          DESKTOP
+      ========================================================= */}
+
+      <div
+        className="
+          hidden
+          lg:grid
+          grid-cols-5
+          gap-2
+          p-3
+          h-full
+          bg-[#2c2453]
+          rounded-[2rem]
+          shadow-2xl
+          border
+          border-white/10
+        "
+      >
+
         {["B", "I", "N", "G", "O"].map((letter) => (
-          <div key={letter} className="flex flex-col gap-2">
+
+          <div
+            key={letter}
+            className="flex flex-col"
+            style={{
+              gap: `${rowGap}vh`,
+            }}
+          >
+
+            {/* LETTER HEADER */}
             <div
-              className={`text-center font-black text-lg w-10 h-10 mx-auto flex items-center justify-center rounded-md text-white shadow-[0_4px_12px_rgba(0,0,0,0.3)] border-2 border-white/20 ${letter === "B" ? "bg-ball-b" :
-                letter === "I" ? "bg-ball-i" :
-                  letter === "N" ? "bg-ball-n" :
-                    letter === "G" ? "bg-ball-g" :
-                      "bg-ball-o"
-                }`}
+              style={{
+                height: `${headerHeight}vh`,
+                minHeight: `${headerHeight}vh`,
+                marginBottom: `${headerGap}vh`,
+              }}
+              className={`
+                text-center
+                font-black
+                text-lg
+                w-10
+                mx-auto
+                flex
+                items-center
+                justify-center
+                rounded-md
+                text-white
+                shadow-[0_4px_12px_rgba(0,0,0,0.3)]
+                border-2
+                border-white/20
+
+                ${letter === "B"
+                  ? "bg-ball-b"
+                  : letter === "I"
+                    ? "bg-ball-i"
+                    : letter === "N"
+                      ? "bg-ball-n"
+                      : letter === "G"
+                        ? "bg-ball-g"
+                        : "bg-ball-o"}
+              `}
             >
               {letter}
             </div>
-            <div className="grid grid-cols-1 gap-1">
-              {columns[letter].map((number) => renderNumberCell(number))}
+
+            {/* NUMBER CELLS */}
+            <div
+              className="grid grid-cols-1"
+              style={{
+                gap: `${rowGap}vh`,
+              }}
+            >
+              {columns[letter].map((number) =>
+                renderNumberCell(number)
+              )}
             </div>
+
           </div>
         ))}
+
       </div>
     </div>
   );

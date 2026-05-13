@@ -137,8 +137,8 @@ function Game() {
           <div className="h-[68.5vh] flex flex-row gap-2 p-1 lg:p-2 min-h-0">
 
             {/* LEFT GRID */}
-            <div className="w-[45%] lg:w-[30%] flex min-h-0 border border-green-500">
-              <div className="flex-1 bg-bingo-bg rounded-xl overflow-hidden min-h-0 border border-green-500">
+            <div className="w-[45%] lg:w-[30%] flex min-h-0 border border-green-500 h-[64.5vh">
+              <div className="h-full flex-1 bg-bingo-bg rounded-xl overflow-hidden min-h-0 border border-green-500">
                 <BingoGrid
                   numbers={Array.from({ length: 75 }, (_, i) => i + 1)}
                   liveResults={liveResults}
@@ -161,7 +161,7 @@ function Game() {
               </div>
 
               {/* PLAYER CARDS (FIXED SCROLL CORE) */}
-              <div className="flex-1 min-h-0 bg-bingo-card-alt rounded-xl overflow-y-auto border border-red-500">
+              <div className="flex-1 h-[58.2vh] bg-bingo-card-alt rounded-xl overflow-y-auto border border-red-500">
                 <PlayerCardsSection
                   storedCards={storedCards}
                   userId={userId}
@@ -223,12 +223,13 @@ function Game() {
         <div className="h-[74.5vh] flex flex-row gap-2 p-1 lg:p-2 min-h-0">
 
           {/* LEFT GRID */}
-          <div className="w-[45%] lg:w-[30%] flex min-h-0">
-            <div className="flex-1 bg-bingo-bg rounded-xl overflow-hidden min-h-0">
+          <div className="w-[45%] lg:w-[30%] flex h-[70.5vh]">
+            <div className="h-full flex-1 bg-bingo-bg rounded-xl overflow-hidden">
               <BingoGrid
                 numbers={Array.from({ length: 75 }, (_, i) => i + 1)}
                 liveResults={liveResults}
                 animationTrigger={animationTrigger}
+                isWatcher={isWatcher}
               />
             </div>
           </div>
@@ -247,7 +248,7 @@ function Game() {
             </div>
 
             {/* PLAYER CARDS */}
-            <div className="flex-1 min-h-0 bg-bingo-card-alt rounded-xl overflow-y-auto">
+            <div className="flex-1 h-bg-bingo-card-alt rounded-xl  h-[52.4vh] overflow-y-auto">
               <PlayerCardsSection
                 storedCards={storedCards}
                 userId={userId}
