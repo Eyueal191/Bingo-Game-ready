@@ -1,9 +1,5 @@
 /*
-Requirement for adjustement.
-1. Voice for winning.
-2. Name anouncement.
-3. Cross winning pattern.
-
-
-
+Requirements:-
+1. voice for winning and game start and end.
+2. 
 */

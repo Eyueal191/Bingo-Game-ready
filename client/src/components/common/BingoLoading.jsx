@@ -1,6 +1,6 @@
 const BingoLoading = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-bingo-bg px-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#21103D] px-6">
 
       {/* Spinner Container (responsive sizing) */}
       <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28">
