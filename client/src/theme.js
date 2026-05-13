@@ -5,24 +5,24 @@ const theme = createTheme({
     mode: "dark",
 
     primary: {
-      main: "#BC1BFF",       
+      main: "#BC1BFF",
       light: "#D46BFF",
       dark: "#6B0F9C",
     },
 
     secondary: {
-      main: "hsl(155, 90%, 45%)",        
+      main: "hsl(155, 90%, 45%)",
       light: "hsl(155, 85%, 60%)",
       dark: "hsl(155, 100%, 30%)",
     },
 
     warning: {
-      main: "hsl(42, 95%, 52%)",         
+      main: "hsl(42, 95%, 52%)",
     },
 
     background: {
-      default: "#0D0517",      
-      paper: "#1A0A2E",       
+      default: "#0D0517",
+      paper: "#1A0A2E",
     },
 
     text: {
