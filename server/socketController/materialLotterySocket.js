@@ -1,10 +1,7 @@
-const { User, MaterialLottery, MaterialPayout } = require("../models");
-const crypto = require("crypto");
-const notify = require("../botController/notification");
 const logger = require("../utils/winstonLogger");
-const mongoose = require("mongoose");
-const walletService = require("../services/walletService");
+const { NotifyUserTelegram } = require("../botController/notification");
 
+const {User, MaterialLottery, MaterialPayout} = require("../models");
 
 const initializeMaterialLotterySocket = (io) => {
   io.on("connection", (socket) => {
@@ -66,17 +63,23 @@ const initializeMaterialLotterySocket = (io) => {
                   rank: w.rank,
                   status: "paid",
                 });
-                await walletService.creditWinAtomic(userId, reward.amount || 0);
+                await User.updateOne(
+                  { _id: userId },
+                  { $inc: { wallet: reward.amount || 0 } }
+                );
                 try {
-                  const u = await User.findById(userId).select("wallet bonus");
-                  if (u)
+                  const u = await User.findById(userId).select("wallet bonus telegramId");
+                  if (u) {
                     io.to(userId.toString()).emit("walletUpdate", {
                       wallet: u.wallet,
                       bonus: u.bonus,
                     });
-                } catch (error) {
-                  logger.error(`Failed to emit wallet update for user ${userId}`, error);
-                }
+                    const isRobotUser = u.isRobot || u.role === "robot";
+                    if (u.telegramId && !isRobotUser && !u.telegramId.startsWith("web_")) {
+                       await NotifyUserTelegram(u.telegramId, `🔴 Material Lottery Win!\nYou've won from a recent game. Your new wallet balance is ${u.wallet} ETB.`);
+                    }
+                  }
+                } catch {}
               }
             }
           }
@@ -481,64 +484,65 @@ const initializeMaterialLotterySocket = (io) => {
 
           // Check wallet + bonus balance
           const totalCost = game.bet_amount * selectedNumbers.length;
-          if ((user.wallet + user.bonus) < totalCost) {
+          const totalAvailable = (user.wallet || 0) + (user.bonus || 0);
+          if (totalAvailable < totalCost) {
             callback({
               error: {
-                message: `Insufficient balance. Required: ${totalCost} coins, Available: ${user.wallet + user.bonus} coins`,
+                message: `Insufficient balance. Required: ${totalCost} ETB, Available: ${totalAvailable} ETB`,
               },
             });
             return;
           }
 
-          // Update user wallet and game participants
-          const session = await mongoose.startSession();
-          let transactionSuccess = false;
-          let totalNumbersTaken = 0;
-          try {
-            await session.withTransaction(async () => {
-              await walletService.deductForGame(userId, totalCost, session);
+          // Deduct from wallet first, then bonus
+          let walletUsed = 0;
+          let bonusUsed = 0;
+          if (user.wallet >= totalCost) {
+            walletUsed = totalCost;
+          } else {
+            walletUsed = user.wallet;
+            bonusUsed = totalCost - walletUsed;
+          }
+          user.wallet -= walletUsed;
+          user.bonus -= bonusUsed;
+          await user.save();
 
-              const tGame = await MaterialLottery.findById(gameId).session(session);
-              const existingParticipant = tGame.participants.find((p) =>
-                p.user_id.equals(userId)
-              );
-              if (existingParticipant) {
-                const combinedNumbers = [
-                  ...new Set([...existingParticipant.numbers, ...selectedNumbers]),
-                ];
-                if (combinedNumbers.length > tGame.max_players) {
-                  throw new Error(`Cannot select more than ${tGame.max_players} numbers`);
-                }
-                existingParticipant.numbers = combinedNumbers;
-                existingParticipant.paid_status = "paid";
-              } else {
-                tGame.participants.push({
-                  user_id: userId,
-                  full_name: user.fullName, // using original user.fullName
-                  numbers: selectedNumbers,
-                  paid_status: "paid",
-                  rank: [],
-                });
-              }
-
-               totalNumbersTaken = tGame.participants.reduce(
-                (sum, p) => sum + (Array.isArray(p.numbers) ? p.numbers.length : 0),
-                0
-              );
-              if (totalNumbersTaken >= tGame.max_players) {
-                tGame.status = "in_progress";
-              }
-
-              await tGame.save({ session });
+          const existingParticipant = game.participants.find((p) =>
+            p.user_id.equals(userId)
+          );
+          if (existingParticipant) {
+            const combinedNumbers = [
+              ...new Set([...existingParticipant.numbers, ...selectedNumbers]),
+            ];
+            if (combinedNumbers.length > game.max_players) {
+              callback({
+                error: {
+                  message: `Cannot select more than ${game.max_players} numbers`,
+                },
+              });
+              return;
+            }
+            existingParticipant.numbers = combinedNumbers;
+            existingParticipant.paid_status = "paid";
+          } else {
+            game.participants.push({
+              user_id: userId,
+              full_name: user.fullName,
+              numbers: selectedNumbers,
+              paid_status: "paid",
+              rank: [],
             });
-            transactionSuccess = true;
-          } catch (e) {
-            callback({ error: { message: e.message || "Failed to join game due to a transaction error" } });
-          } finally {
-            session.endSession();
           }
 
-          if (!transactionSuccess) return;
+          const totalNumbersTaken = game.participants.reduce(
+            (sum, p) => sum + (Array.isArray(p.numbers) ? p.numbers.length : 0),
+            0
+          );
+          if (totalNumbersTaken >= game.max_players) {
+            game.status = "in_progress";
+          }
+
+          await game.save();
 
           let updatedGame = await MaterialLottery.findById(gameId).populate({
             path: "participants.user_id",
@@ -584,23 +588,25 @@ const initializeMaterialLotterySocket = (io) => {
             message: `Joined game with numbers: ${selectedNumbers.join(", ")}`,
           });
 
-          const freshBal = await User.findById(userId).select("wallet bonus");
           io.to(userId.toString()).emit("walletUpdate", {
-            wallet: freshBal?.wallet ?? 0,
-            bonus: freshBal?.bonus ?? 0,
+            wallet: user.wallet,
+            bonus: user.bonus,
           });
 
           // Telegram confirmation to the purchasing user
           try {
+            const notify = require("../botController/notification.js");
             const freshUser = await User.findById(userId);
             if (freshUser && freshUser.telegramId) {
               const perPrice = updatedGame.bet_amount;
               const totalPaid = perPrice * selectedNumbers.length;
-              const msg = `🎫 MATERIAL LOTTERY TICKET CONFIRMATION\n\nRound: ${updatedGame.round || 1
-                }\nNumbers: ${selectedNumbers.join(", ") || "-"
-                }\nPrice per number: ${perPrice} coins\nTotal paid: ${totalPaid} coins\nNew balance: ${freshUser.wallet.toFixed(
-                  2
-                )} coins`;
+              const msg = `🎫 MATERIAL LOTTERY TICKET CONFIRMATION\n\nRound: ${
+                updatedGame.round || 1
+              }\nNumbers: ${
+                selectedNumbers.join(", ") || "-"
+              }\nPrice per number: ${perPrice} ETB\nTotal paid: ${totalPaid} ETB\nNew balance: ${freshUser.wallet.toFixed(
+                2
+              )} ETB`;
               await notify.NotifyUserTelegram(freshUser.telegramId, msg);
             }
           } catch (notifyErr) {
@@ -649,38 +655,26 @@ const initializeMaterialLotterySocket = (io) => {
                   const reward = refreshed.rewards.find(
                     (r) => r.rank === winner.rank
                   );
-                  const session = await mongoose.startSession();
-                  try {
-                    await session.withTransaction(async () => {
-                      const payout = new MaterialPayout({
-                        user_id: winner.user_id,
-                        game_id: gameId,
-                        amount: reward.type === "monetary" ? reward.amount : 0,
-                        description: reward.description,
-                        type: reward.type,
-                        rank: winner.rank,
-                        status: reward.type === "monetary" ? "paid" : "pending",
-                      });
-                      await payout.save({ session });
-                      // Update user wallet if monetary
-                      if (reward.type === "monetary") {
-                        await walletService.creditWin(winner.user_id, reward.amount, session);
-                      }
-                    });
-                  } catch (e) {
-                    logger.error(`Material lottery payout error: ${e.message}`);
-                  } finally {
-                    session.endSession();
-                  }
-
+                  // Record payout
+                  const payout = new MaterialPayout({
+                    user_id: winner.user_id,
+                    game_id: gameId,
+                    amount: reward.type === "monetary" ? reward.amount : 0,
+                    description: reward.description,
+                    type: reward.type,
+                    rank: winner.rank,
+                    status: reward.type === "monetary" ? "paid" : "pending",
+                  });
+                  await payout.save();
+                  // Update user wallet if monetary
                   if (reward.type === "monetary") {
-                    const updatedUser = await User.findById(winner.user_id).select("wallet bonus");
-                    if (updatedUser) {
-                      io.to(winner.user_id.toString()).emit("walletUpdate", {
-                        wallet: updatedUser.wallet,
-                        bonus: updatedUser.bonus,
-                      });
-                    }
+                    const winnerUser = await User.findById(winner.user_id);
+                    winnerUser.wallet += reward.amount;
+                    await winnerUser.save();
+                    io.to(winner.user_id.toString()).emit("walletUpdate", {
+                      wallet: winnerUser.wallet,
+                      bonus: winnerUser.bonus,
+                    });
                   }
                   // Emit individual winner event
                   io.to(gameId).emit("gameUpdate", {
@@ -735,6 +729,7 @@ const initializeMaterialLotterySocket = (io) => {
 
                 // Notify all participants via Telegram
                 try {
+                  const notify = require("../botController/notification.js");
                   const participantIds = completedGame.participants.map(
                     (p) => p.user_id._id
                   );
@@ -746,35 +741,40 @@ const initializeMaterialLotterySocket = (io) => {
                     month: "short",
                     day: "numeric",
                   });
-                  for (const user of users) {
+                  users.forEach(async (user) => {
                     if (user.telegramId) {
-                      let msg = `🎉 <b>MATERIAL LOTTERY RESULTS</b> 🎉\n\nRound: ${completedGame.round || 1
-                        }\nDraw Date: ${date}\n━━━━━━━━━━━━━\n\n`;
+                      let msg = `🎉 <b>MATERIAL LOTTERY RESULTS</b> 🎉\n\nRound: ${
+                        completedGame.round || 1
+                      }\nDraw Date: ${date}\n━━━━━━━━━━━━━\n\n`;
                       msg += `<b>WINNERS</b>\n`;
                       winners.forEach((w) => {
                         const r = completedGame.rewards.find(
                           (x) => x.rank === w.rank
                         );
-                        msg += `🥇 Rank ${r.rank}: <b>${w.numbers[0]}</b> (${w.full_name
-                          }) - ${r.type === "monetary"
-                            ? `${r.amount} coins`
+                        msg += `🥇 Rank ${r.rank}: <b>${w.numbers[0]}</b> (${
+                          w.full_name
+                        }) - ${
+                          r.type === "monetary"
+                            ? `${r.amount} ETB`
                             : r.description
-                          }\n`;
+                        }\n`;
                       });
                       const wins = winners.filter((w) => {
                         const wId = normalizeUserRef(w.user_id);
                         return wId && wId.toString() === user._id.toString();
                       });
-                      msg += `\n${wins.length
-                        ? `✨ <b>Congratulations ${user.fullName
-                        }! You won rank ${wins
-                          .map((w) => w.rank)
-                          .join(", ")}</b>`
-                        : `🙁 <b>Sorry ${user.fullName}, no win this time.</b>`
-                        }\n\n🎫 Next tickets are open!`;
+                      msg += `\n${
+                        wins.length
+                          ? `✨ <b>Congratulations ${
+                              user.fullName
+                            }! You won rank ${wins
+                              .map((w) => w.rank)
+                              .join(", ")}</b>`
+                          : `🙁 <b>Sorry ${user.fullName}, no win this time.</b>`
+                      }\n\n🎫 Next tickets are open!`;
                       await notify.NotifyUserTelegram(user.telegramId, msg);
                     }
-                  }
+                  });
                 } catch (e) {
                   logger.warn("Material Lottery notification error", {
                     error: e?.message,
@@ -803,10 +803,10 @@ const selectWinners = (game) => {
   const availableNumbers = participants.flatMap((p) =>
     Array.isArray(p.numbers)
       ? p.numbers.map((n) => ({
-        user_id: p.user_id && p.user_id._id ? p.user_id._id : p.user_id,
-        full_name: (p.user_id && p.user_id.fullName) || p.full_name,
-        number: n,
-      }))
+          user_id: p.user_id && p.user_id._id ? p.user_id._id : p.user_id,
+          full_name: (p.user_id && p.user_id.fullName) || p.full_name,
+          number: n,
+        }))
       : []
   );
   const winners = [];
@@ -814,7 +814,7 @@ const selectWinners = (game) => {
   const ranks = game.rewards.map((r) => r.rank).sort((a, b) => a - b);
   for (const rank of ranks) {
     if (availableNumbers.length === 0) break;
-    const randomIndex = crypto.randomInt(0, availableNumbers.length);
+    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
     const winner = availableNumbers[randomIndex];
     if (winner) {
       winners.push({

@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 
 // Routes
+router.use((req, res, next) => {
+  req.io = req.app.get("io");
+  next();
+});
 router.use("/users", require("./userRoutes"));
 router.use("/bingo-cards", require("./bingoCardsroutes"));
 router.use("/gamerooms", require("./gameRoomRoutes"));
@@ -19,7 +23,6 @@ router.use("/stake-bonus", require("./stakeBonusSettingsRoutes"));
 router.use("/send-user-notice", require("./notificationRoutes"));
 router.use("/sms-deposit", require("./smsDepositRoutes"));
 router.use("/agent-payments", require("./agentPaymentRoutes"));
-router.use("/leaderboard", require("./leaderboardRoutes"));
 router.use("/admin", require("./admin"));
 router.use("/history", require("./history"));
 router.use("/permissions", require("./permission"));
@@ -30,10 +33,6 @@ router.use("/wallet-logs", require("./walletLogRoutes"));
 router.use("/revenue", require("./revenueRoutes"));
 router.use("/robots", require("./robotRoutes"));
 router.use("/bot-pacing", require("./botPacingRoutes"));
-router.use("/phone", require("./phoneRoutes"));
-router.use("/ludo", require("./ludoRoomRoutes"));
-router.use("/countries", require("./countryRoutes"));
-router.use("/payment-methods", require("./paymentMethodRoutes"));
-router.use("/jackpot", require("./jackpotRoutes"));
+
 
 module.exports = router;

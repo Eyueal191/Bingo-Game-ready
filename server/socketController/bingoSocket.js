@@ -278,6 +278,34 @@ const initializeBingoSocket = (io) => {
             }
         );
 
+        socket.on(
+            "unreserve_cards",
+            async ({ roomId, cardIds, userId }, callback) => {
+                const respond = (payload) => {
+                    if (typeof callback === "function") {
+                        callback(payload);
+                    }
+                };
+
+                try {
+                    const result = await reservationService.unReserveCards(io, {
+                        roomId,
+                        cardIds,
+                        userId,
+                    });
+
+                    if (result.error) {
+                        respond({ error: result.error });
+                    } else {
+                        respond(result);
+                    }
+                } catch (error) {
+                    logger.error(`Error unreserving cards for room ${roomId}`, error);
+                    respond({ error: { message: "Failed to unreserve cards" } });
+                }
+            }
+        );
+
         socket.on("get_settings", async () => {
             try {
                 const settings = await getSettings();

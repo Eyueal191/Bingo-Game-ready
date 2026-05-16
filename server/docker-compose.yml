@@ -1,0 +1,56 @@
+services:
+  edil-mongo:
+    image: mongo:7.0
+    container_name: edil-mongo
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=sam12345
+    volumes:
+      - edil-mongo-data:/data/db
+      - ./mongo-keyfile:/etc/mongo-keyfile:ro
+    command: mongod --replSet rs0 --bind_ip localhost,edil-mongo --oplogSize 128 --keyFile /etc/mongo-keyfile
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.runCommand({ping: 1}).ok",
+          "mongodb://root:sam12345@localhost:27017/admin"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+    networks:
+      - edil-network
+
+  edil-backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: edil-backend
+    ports:
+      - "5055:5055"
+    restart: always
+    env_file:
+      - ./server/.env
+    environment:
+      - NODE_ENV=production
+    networks:
+      - edil-network
+    depends_on:
+      edil-mongo:
+        condition: service_healthy
+    volumes:
+      - edil-backend-uploads:/app/uploads
+
+volumes:
+  edil-mongo-data:
+  edil-backend-uploads:
+
+networks:
+  edil-network:
+    driver: bridge

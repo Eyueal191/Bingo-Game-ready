@@ -4,7 +4,7 @@ const Payout = require("../models/payout");
 const User = require("../models/userModels");
 const { Transaction } = require("../models/Transaction");
 const logger = require("../utils/winstonLogger");
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 
 const getDashboard = async (req, res) => {
   try {

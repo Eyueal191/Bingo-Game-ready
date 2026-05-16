@@ -60,6 +60,7 @@ async function handleTelebirrDepositSubmit(bot, chatId, state) {
     const expectedAccount = telebirrConfig.accountNumber || "";
     const creditedAccount = parsed.creditedPartyAccountNo || "";
     if (!maskedAccountMatches(creditedAccount, expectedAccount)) {
+      console.log("Account mismatch:", { creditedAccount, expectedAccount });
       throw new Error(
         `The deposit was made to the wrong TeleBirr account (${creditedAccount}).`
       );
@@ -104,7 +105,7 @@ async function handleTelebirrDepositSubmit(bot, chatId, state) {
   } catch (err) {
     const errorMessage =
       err.response?.data?.message ||
-      `❌ TeleBirr deposit failed: ${err.message}`;
+      ``;
     await bot.editMessageText(errorMessage, {
       chat_id: chatId,
       message_id: waitingMsg.message_id,

@@ -40,49 +40,44 @@ const canAffordGame = async (userId) => {
  * @returns {{ walletUsed: number, bonusUsed: number, walletAfter: number, bonusAfter: number }}
  */
 const deductForGame = async (userId, amount, session) => {
-    if (typeof amount !== "number" || isNaN(amount) || amount <= 0) {
-        throw new Error("Invalid amount");
-    }
-
     const user = await User.findById(userId).session(session);
     if (!user) throw new Error("User not found");
 
-    const walletUsed = Math.min(user.wallet, amount);
-    const bonusUsed = amount - walletUsed;
+    const totalAvailable = user.wallet + user.bonus;
+    if (totalAvailable < amount) {
+        throw new Error("Insufficient balance");
+    }
 
-    const result = await User.updateOne(
-        {
-            _id: userId,
-            $expr: {
-                $gte: [{ $add: ["$wallet", "$bonus"] }, amount]
-            }
-        },
-        {
-            $inc: {
-                wallet: -walletUsed,
-                bonus: -bonusUsed
-            }
-        },
-        { session }
-    );
-  logger.debug("walletService.deductForGame", {
+    let walletUsed = 0;
+    let bonusUsed = 0;
+
+    if (user.wallet >= amount) {
+        // Wallet covers the full cost
+        walletUsed = amount;
+    } else {
+        // Wallet covers partial, rest from bonus
+        walletUsed = user.wallet;
+        bonusUsed = amount - walletUsed;
+    }
+
+    user.wallet -= walletUsed;
+    user.bonus -= bonusUsed;
+    await user.save({ session });
+
+    logger.debug("walletService.deductForGame", {
         userId,
         amount,
         walletUsed,
         bonusUsed,
-        walletAfter: result.modifiedCount > 0 ? user.wallet - walletUsed : user.wallet||0,
-        bonusAfter: result.modifiedCount > 0 ? user.bonus - bonusUsed : user.bonus||0,
+        walletAfter: user.wallet,
+        bonusAfter: user.bonus,
     });
-    if (result.modifiedCount === 0) {
-        throw new Error("Insufficient balance (race condition)");
-    }
-    
 
     return {
         walletUsed,
         bonusUsed,
-        walletAfter: result.modifiedCount > 0 ? user.wallet - walletUsed : user.wallet||0,
-        bonusAfter: result.modifiedCount > 0 ? user.bonus - bonusUsed : user.bonus||0,
+        walletAfter: user.wallet,
+        bonusAfter: user.bonus,
     };
 };
 

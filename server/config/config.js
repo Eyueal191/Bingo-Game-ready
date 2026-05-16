@@ -29,6 +29,8 @@ const envSchema = z
     ADDISPAY_BASE_URL: z.string().default("https://api.addispay.et/checkout-api/v1"),
     SESSION_EXPIRED: z.string().default("50000"),
     ASSET_BASE_URL: z.string().optional(),
+
+
     // Automatic verification keys
     CBEBIRR_API_KEY: z.string().optional(),
     CBEBIRR_INSECURE_SSL: z.enum(["true", "false"]).optional().default("false"),
@@ -56,6 +58,7 @@ const envSchema = z
       .optional(),
     BOT_POLLING_LEASE_TTL_MS: z.string().optional().default("60000"),
     BOT_INSTANCE_ID: z.string().optional(),
+    BOT_MENU_TYPE: z.enum(["inline", "reply", "none"]).optional().default("inline"),
   })
   .superRefine((env, ctx) => {
     // Avoid silent fallbacks: if admin notifications are enabled, require both token + recipients.
@@ -141,6 +144,7 @@ const CONFIG = {
   cbebirrInsecureSsl: envVars.data.CBEBIRR_INSECURE_SSL === "true",
   telebirrVerifyUrl: envVars.data.TELEBIRR_VERIFY_URL,
   assetBaseUrl: envVars.data.ASSET_BASE_URL,
+  botMenuType: envVars.data.BOT_MENU_TYPE,
 };
 
 module.exports = CONFIG;

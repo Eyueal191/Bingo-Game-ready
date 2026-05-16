@@ -47,5 +47,14 @@ const gameParticipantSchema = new mongoose.Schema(
 // Ensure a user has at most one participant per game
 gameParticipantSchema.index({ game_id: 1, user_id: 1 }, { unique: true });
 
+gameParticipantSchema.index(
+  { game_id: 1, numbers: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      numbers: { $exists: true, $type: "array", $ne: [] },
+    },
+  }
+);
 
 module.exports = mongoose.model("GameParticipant", gameParticipantSchema);

@@ -13,7 +13,7 @@ const reservationSchema = new mongoose.Schema({
     enum: ["reserved", "playing", "won", "lost"],
     default: "reserved",
   },
-  status: { type: String, enum: ["active", "completed", 'pending'], default: "active" },
+  status: { type: String, enum: ["active", "completed", "pending", "cancelled"], default: "active" },
   playMode: { type: String, enum: ["manual", "auto"] },
   isDisqualified: { type: Boolean, default: false },
   disqualifiedAt: { type: Date },

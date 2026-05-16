@@ -12,14 +12,11 @@ const withdrawalSchema = new Schema(
       default: "pending",
       enum: ["pending", "approved", "rejected"],
     },
-    localAmount: { type: Number },
-    localCurrency: { type: String },
-    exchangeRate: { type: Number },
     submittedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
-const WithdrawalRequest = mongoose.model("WithdrawalRequest", withdrawalSchema, "withdrawals");
-module.exports = WithdrawalRequest;
+const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);
+module.exports = Withdrawal;
 

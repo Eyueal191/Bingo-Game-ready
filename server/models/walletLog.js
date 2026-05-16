@@ -27,11 +27,6 @@ const WalletLogSchema = new mongoose.Schema(
       ],
       default: "manual",
     },
-    balanceType: {
-      type: String,
-      enum: ["wallet", "bonus"],
-      default: "wallet",
-    },
     ip: { type: String },
     userAgent: { type: String },
   },

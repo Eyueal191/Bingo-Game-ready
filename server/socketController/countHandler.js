@@ -130,7 +130,6 @@ const startCounter = async (io, gameRoomId) => {
           const updatedGameRoom = await GameRoom.findById(gameRoomId);
           if (updatedGameRoom && updatedGameRoom.status === "starting") {
             updatedGameRoom.status = "playing";
-            updatedGameRoom.playingStartedAt = new Date();
             stopSystemReservationBot(gameRoomId);
             const reservations = await Reservation.find({
               roomId: gameRoomId,
@@ -280,11 +279,9 @@ const initializeCounters = async (io) => {
   }
 };
 
-let counterChangeStream = null;
-
 const watchGameRoomCounter = (io) => {
-    counterChangeStream = GameRoom.watch();
-    counterChangeStream.on("change", async (change) => {
+  const changeStream = GameRoom.watch();
+  changeStream.on("change", async (change) => {
     if (change.operationType === "update") {
       const gameRoomId = change.documentKey._id.toString();
       const updatedGameRoom = await GameRoom.findById(gameRoomId);
@@ -298,16 +295,9 @@ const watchGameRoomCounter = (io) => {
       }
     }
   });
-  counterChangeStream.on("error", (error) => {
-    if (error.message?.includes('client was closed')) return;
+  changeStream.on("error", (error) => {
     logger.error("Error in GameRoom change stream", error);
   });
-};
-
-const closeCounterChangeStreams = async () => {
-  try { if (counterChangeStream) await counterChangeStream.close(); } catch (error) {
-    logger.error("Error closing counter change stream", error);
-  }
 };
 
 module.exports = {
@@ -317,5 +307,4 @@ module.exports = {
   watchGameRoomCounter,
   initializeCounters,
   doesGameRoomExist,
-  closeCounterChangeStreams,
 };

@@ -5,7 +5,7 @@ const {
   deleteTransaction,
 } = require("../services/transactionServices");
 const { Transaction, TransactionType } = require("../models/Transaction");
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 
 
 const logger = require("../utils/winstonLogger");

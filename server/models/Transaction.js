@@ -9,10 +9,6 @@ const TransactionType = {
   REGISTRATION_BONUS: "registration_bonus",
   REFERRAL_BONUS: "referral_bonus",
   BONUS: "game_bonus",
-  JACKPOT: "jackpot",
-  BET: "bet",
-  WIN: "win",
-  REFUND: "refund",
 };
 
 const TransactionStatus = {
@@ -20,8 +16,6 @@ const TransactionStatus = {
   COMPLETED: "COMPLETED",
   FAILED: "FAILED",
   CANCELLED: "CANCELED",
-  APPROVED: "approved",
-  REJECTED: "rejected",
 };
 
 const transactionSchema = new mongoose.Schema(
@@ -33,12 +27,8 @@ const transactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
+      enum: Object.values(TransactionType),
       required: true,
-    },
-    source: {
-      type: String,
-      enum: ["manual", "sms", "admin", "system", "addispay", "telebirr"],
-      default: "system",
     },
     amount: {
       type: Number,
@@ -63,32 +53,17 @@ const transactionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
+      enum: Object.values(TransactionStatus),
       default: TransactionStatus.PENDING,
     },
     reference: {
       type: String,
-      sparse: true,
+      required: true,
       unique: true,
-    },
-    transactionId: {
-      type: String,
-      required: false,
-    },
-    receiptId: {
-      type: Schema.Types.ObjectId,
-      ref: "Receipts",
-      default: null,
-    },
-    paymentMethod: {
-      type: String,
-      required: false,
     },
     addispayNonce: { type: String, unique: true, sparse: true },
     addispayTransactionId: { type: String, unique: true, sparse: true },
     description: String,
-    localAmount: { type: Number },
-    localCurrency: { type: String },
-    exchangeRate: { type: Number },
     metadata: mongoose.Schema.Types.Mixed,
   },
   { timestamps: true }

@@ -1,7 +1,6 @@
-const CountryModel = require("../models/Country");
-const Withdrawal = require("../models/WithdrawalRequest");
+const Withdrawal = require("../models/Withdrawal");
 const User = require("../models/userModels");
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 const Reservation = require("../models/reservationModel");
 const { NotifyUserTelegram } = require("../botController/notification");
 const { getAppSettings } = require("../services/appSettingsService");
@@ -11,7 +10,6 @@ const {
   TransactionType,
   TransactionStatus,
 } = require("../models/Transaction");
-const mongoose = require('mongoose');
 
 const safeText = (v) => String(v ?? "").trim();
 
@@ -26,7 +24,7 @@ exports.submitWithdrawalRequest = async (req, res) => {
   const parsedAmount = Number(amount);
   if (!Number.isFinite(parsedAmount) || parsedAmount < minWithdrawal) {
     return res.status(400).json({
-      message: `Invalid amount (minimum withdrawal amount is ${minWithdrawal} coins)`,
+      message: `Invalid amount (minimum withdrawal amount is ${minWithdrawal} ETB)`,
     });
   }
   if (!method || !accountNumber) {
@@ -43,13 +41,6 @@ exports.submitWithdrawalRequest = async (req, res) => {
         message: "User not found, please register first with //register",
       });
     }
-
-    // Get exchange rate
-    const userCountry = await CountryModel.findOne({ code: user.country || "ET" });
-    const exchangeRate = userCountry ? userCountry.exchangeRate : 1;
-    const currency = userCountry ? userCountry.currencyCode : "ETB";
-    const localAmount = (parsedAmount * exchangeRate).toFixed(2);
-
     if (user.wallet < parsedAmount) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
@@ -99,11 +90,11 @@ exports.submitWithdrawalRequest = async (req, res) => {
       }
     }
 
-    // Check if wallet balance after withdrawal is >= min balance
+    // Check if wallet balance after withdrawal is >= 10 ETB
     const remainingBalance = user.wallet - parsedAmount;
     if (remainingBalance < minBalance) {
       return res.status(400).json({
-        message: `Wallet balance after withdrawal must be at least ${minBalance} coins`,
+        message: `Wallet balance after withdrawal must be at least ${minBalance} ETB`,
       });
     }
 
@@ -112,14 +103,11 @@ exports.submitWithdrawalRequest = async (req, res) => {
       amount: parsedAmount,
       method,
       accountNumber,
-      localAmount: Number(localAmount),
-      localCurrency: currency,
-      exchangeRate: exchangeRate,
     });
 
     await withdrawal.save();
     res.status(201).json({
-      message: `${parsedAmount} coins withdrawal request submitted successfully. You will receive approximately ${localAmount} ${currency}.`,
+      message: `${parsedAmount} ETB Withdrawal request submitted successfully, you will get received soon`,
     });
   } catch (error) {
     logger.error("withdrawalController: withdrawal submission error", { err: error });
@@ -318,7 +306,7 @@ exports.rejectWithdrawal = async (req, res) => {
     await withdrawal.save();
 
     const telegramId = withdrawal?.userId?.telegramId;
-    if (telegramId) {
+    if (telegramId && !telegramId.startsWith("web_")) {
       const trimmedReason = safeText(reason);
       const baseMsg = `Your withdrawal request of ${withdrawal.amount} Birr has been rejected.`;
       const message = trimmedReason
@@ -361,24 +349,18 @@ exports.deleteWithdrawal = async (req, res) => {
 };
 
 exports.approveWithdrawal = async (req, res) => {
-  const { userId, telegramId, withdrawalId, amount } = req.body;
+  const { telegramId, withdrawalId, amount } = req.body;
 
   const parsedAmount = Number(amount);
 
-  if ((!userId && !telegramId) || !withdrawalId || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+  if (!telegramId || !withdrawalId || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
     return res
       .status(400)
-      .json({ message: "Invalid user identifier, withdrawalId, or amount" });
+      .json({ message: "Invalid telegramId, withdrawalId, or amount" });
   }
 
   try {
-    let user;
-    if (userId) {
-      user = await User.findById(userId);
-    } else {
-      user = await User.findOne({ telegramId });
-    }
-
+    const user = await User.findOne({ telegramId });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const withdrawal = await Withdrawal.findById(withdrawalId);
@@ -394,77 +376,30 @@ exports.approveWithdrawal = async (req, res) => {
       return res.status(400).json({ message: "Insufficient balance" });
     }
 
-    const userCountry = await CountryModel.findOne({ code: user.country || "ET" });
-    const exchangeRate = userCountry ? userCountry.exchangeRate : 1;
-    const currency = userCountry ? userCountry.currencyCode : "ETB";
-
+    user.wallet -= parsedAmount;
     const transaction = new ManualTransaction({
       userId: user._id,
-      type: "Withdrawal",
+      type: "Withdrawal", // Matches your enum
       amount: parsedAmount,
-      localAmount: (parsedAmount * exchangeRate),
-      localCurrency: currency,
-      exchangeRate: exchangeRate,
-      status: "approved",
-      paymentMethod: String(withdrawal.method || "Unknown").trim(),
       description: "Admin approved withdrawal",
     });
 
-    const ledgerTx = new AddisTransaction({
-      userId: user._id,
-      type: TransactionType.WITHDRAWAL,
-      source: "manual",
-      amount: parsedAmount,
-      status: TransactionStatus.COMPLETED,
-      paymentMethod: String(withdrawal.method || "Unknown").trim(),
-      localAmount: (parsedAmount * exchangeRate),
-      localCurrency: currency,
-      exchangeRate: exchangeRate,
-      description: "Admin approved withdrawal",
-    });
+    withdrawal.status = "approved";
+    await Promise.all([user.save(), transaction.save(), withdrawal.save()]);
 
-    // ATOMIC: Use $inc with a MongoDB session to prevent race conditions.
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      const updatedUser = await User.findByIdAndUpdate(
-        user._id,
-        { $inc: { wallet: -parsedAmount } },
-        { new: true, session }
-      );
+    // Emit wallet update via Socket.IO
+    req.io
+      .to(user._id.toString())
+      .emit("walletUpdate", { wallet: user.wallet, bonus: user.bonus });
 
-      // Verify balance didn't go negative due to concurrent deductions
-      if (updatedUser.wallet < 0) {
-        throw new Error("Insufficient balance after concurrent deduction");
-      }
-
-      withdrawal.status = "approved";
-      await Promise.all([
-        transaction.save({ session }),
-        ledgerTx.save({ session }),
-        withdrawal.save({ session })
-      ]);
-
-      await session.commitTransaction();
-      session.endSession();
-
-      // Emit wallet update via Socket.IO using atomically updated values
-      req.io
-        .to(user._id.toString())
-        .emit("walletUpdate", { wallet: updatedUser.wallet, bonus: updatedUser.bonus });
-      const message = `Your withdrawal of ${parsedAmount} has been approved! New wallet balance: ${updatedUser.wallet}`;
-      if (user.telegramId) {
-        await NotifyUserTelegram(user.telegramId, message);
-      }
-      res.status(200).json({
-        message: "Withdrawal approved successfully",
-        wallet: updatedUser.wallet,
-      });
-    } catch (sessionError) {
-      await session.abortTransaction();
-      session.endSession();
-      throw sessionError;
+    if (telegramId && user.role !== "robot" && !telegramId.startsWith("web_")) {
+      const message = `Your withdrawal of ${parsedAmount} has been approved! New wallet balance: ${user.wallet}`;
+      await NotifyUserTelegram(telegramId, message);
     }
+    res.status(200).json({
+      message: "Withdrawal approved successfully",
+      wallet: user.wallet,
+    });
   } catch (error) {
     logger.error("withdrawalController: withdrawal approval error", { err: error });
     res.status(500).json({ message: "Failed to approve withdrawal" });

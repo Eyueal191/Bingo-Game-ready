@@ -136,13 +136,12 @@ const listGameRooms = async (req, res) => {
       status: { $in: ["pending", "in_progress"] },
     };
 
+    // If gameType is specified, filter by it; otherwise return all
     if (gameType) {
-      if (!["keshkesh"].includes(gameType)) {
+      if (!["keshkesh", "fetan-spin"].includes(gameType)) {
         return res.status(400).json({ error: "Invalid gameType" });
       }
       query.gameType = gameType;
-    } else {
-      query.gameType = "keshkesh";
     }
 
     const games = await Game.find(query).populate({
@@ -308,7 +307,7 @@ const updateGameRoom = async (req, res) => {
       updates.prize_amount = totalPool * (1 - sys / 100);
     }
     if (gameType !== undefined) {
-      if (!["keshkesh"].includes(gameType)) {
+      if (!["keshkesh", "fetan-spin"].includes(gameType)) {
         return res.status(400).json({ error: "Invalid gameType" });
       }
       updates.gameType = gameType;
@@ -421,13 +420,12 @@ const listGameHistory = async (req, res) => {
 
     const query = {};
 
+    // Game type filter: default to all if not specified
     if (gameType) {
-      if (!["keshkesh"].includes(gameType)) {
+      if (!["keshkesh", "fetan-spin"].includes(gameType)) {
         return res.status(400).json({ error: "Invalid gameType filter" });
       }
       query.gameType = gameType;
-    } else {
-      query.gameType = "keshkesh";
     }
 
     // Status filter: default to completed only; allow 'all' to include any

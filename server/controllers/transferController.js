@@ -3,6 +3,7 @@ const User = require('../models/userModels');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const logger = require('../utils/winstonLogger');
+const { NotifyUserTelegram } = require('../botController/notification');
 
 // Transfer balance from one user to another
 const transferBalance = async (req, res) => {
@@ -81,6 +82,9 @@ const transferBalance = async (req, res) => {
 
         const reference = `TRF-${Date.now()}-${sender._id.toString().slice(-4)}`;
 
+        const senderLabel = sender.fullName || (sender.phone ? (sender.phone.slice(0, 3) + '****' + sender.phone.slice(-3)) : sender.telegramId);
+        const receiverLabel = receiver.fullName || (receiver.phone ? (receiver.phone.slice(0, 3) + '****' + receiver.phone.slice(-3)) : receiver.telegramId);
+
         // Create transaction records
         const newTransfer = new Transaction({
             userId: sender._id,
@@ -88,7 +92,7 @@ const transferBalance = async (req, res) => {
             amount: amount,
             status: TransactionStatus.COMPLETED,
             reference: reference,
-            description: `Transfer to ${receiver.telegramId || 'User'}`,
+            description: `Transfer to ${receiverLabel}`,
             metadata: { receiverId: receiver._id }
         });
 
@@ -98,7 +102,7 @@ const transferBalance = async (req, res) => {
             amount: amount,
             status: TransactionStatus.COMPLETED,
             reference: `REC-${reference}`,
-            description: `Transfer from ${sender.telegramId || 'User'}`,
+            description: `Transfer from ${senderLabel}`,
             metadata: { senderId: sender._id }
         });
 
@@ -117,6 +121,19 @@ const transferBalance = async (req, res) => {
 
             req.io.to(senderRoom).emit("walletUpdate", { wallet: sender.wallet, bonus: sender.bonus });
             req.io.to(receiverRoom).emit("walletUpdate", { wallet: receiver.wallet, bonus: receiver.bonus });
+        }
+
+        try {
+           if (!req.body.isBotFlow) {
+               if (sender.telegramId && sender.role !== "robot" && !sender.telegramId.startsWith("web_")) {
+                   await NotifyUserTelegram(sender.telegramId, `🔴 Transfer Sent\nYou have successfully sent ${amount} ETB to ${receiverLabel}. New wallet balance: ${sender.wallet} ETB`);
+               }
+               if (receiver.telegramId && receiver.role !== "robot" && !receiver.telegramId.startsWith("web_")) {
+                   await NotifyUserTelegram(receiver.telegramId, `🟢 Transfer Received\nYou have received ${amount} ETB from ${senderLabel}. New wallet balance: ${receiver.wallet} ETB`);
+               }
+           }
+        } catch (e) {
+           logger.error("Failed to send telegram transfer notifications", { error: e.message });
         }
 
         return res.status(200).json({

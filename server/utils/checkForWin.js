@@ -1,4 +1,12 @@
-const checkForWin = (cardGrid, drawnNumbers) => {
+const checkForTwoLineWin = require('./checkForTwoLineWin');
+
+const checkForWin = (cardGrid, drawnNumbers, winPattern = "two_line") => {
+  // Two-line mode: delegate to the dedicated two-line checker
+  if (winPattern === "two_line") {
+    return checkForTwoLineWin(cardGrid, drawnNumbers);
+  }
+
+  // --- Existing one-line / corner detection ---
   for (const row of cardGrid) {
     if (row.every((num) => num === "F" || drawnNumbers.includes(num))) {
       return { winningCombo: [...row] };

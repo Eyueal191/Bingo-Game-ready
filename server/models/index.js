@@ -2,22 +2,18 @@ const GameRoom = require("./gameRoom");
 const Reservation = require("./reservationModel");
 const BingoCard = require("./bingoCardModel");
 const User = require("./userModels");
-const { Transaction: MainTransaction, TransactionStatus } = require("./Transaction");
+const { Transaction: MainTransaction, TransactionStatus} = require("./Transaction");
 const StakeBonusSettings = require("./stakeBonusSettings");
 const AppConfig = require("./appConfig");
 const CardLock = require("./cardLockModel");
 const { GameTransaction,
-    GameTransactionType, GameType, UserType } = require("./GameTransaction");
+     GameTransactionType, GameType, UserType } = require("./GameTransaction");
 const Game = require("./game");
 const GameParticipant = require("./gameParticipant");
 const Payout = require("./payout");
 const SpinLog = require("./spinLog");
 const MaterialLottery = require("./materialLottery");
 const MaterialPayout = require("./materialPayout");
-const LudoRoom = require("./LudoRoom");
-const LudoGame = require("./LudoGame");
-const Country = require("./Country");
-const JackpotConfig = require("./JackpotConfig");
 module.exports = {
     GameRoom,
     Reservation,
@@ -37,9 +33,5 @@ module.exports = {
     Payout,
     SpinLog,
     MaterialLottery,
-    MaterialPayout,
-    LudoRoom,
-    LudoGame,
-    Country,
-    JackpotConfig,
+    MaterialPayout
 };

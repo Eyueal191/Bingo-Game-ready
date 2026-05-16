@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const { authenticate, isSecretary } = require("../middlewares/auth");
 const { sendNotification } = require("../controllers/notificationController");
 const asyncHandler = require("../utils/asyncHandler");
 
@@ -20,12 +19,6 @@ const upload = multer({
 });
 
 // Route for sending notifications
-router.post(
-  "/notify",
-  authenticate,
-  isSecretary,
-  upload.single("image"),
-  asyncHandler(sendNotification)
-);
+router.post("/notify", upload.single("image"), asyncHandler(sendNotification));
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const {
   Transaction,
+  TransactionType,
   TransactionStatus,
 } = require("../models/Transaction");
 const logger = require("../utils/winstonLogger");
@@ -44,7 +45,7 @@ const appendCallbackMetadata = (transaction, entry) => {
   }
 };
 
-const handleDepositSuccessCallback = async (callbackData, io) => {
+const handleDepositSuccessCallback = async (callbackData) => {
   const {
     nonce,
     payment_status,
@@ -107,8 +108,9 @@ const handleDepositSuccessCallback = async (callbackData, io) => {
     depositBonus
   );
 
-  // Base deposit goes to wallet, bonus goes to bonus field
-  user.wallet = (user.wallet || 0) + order.amount;
+  // Base deposit amount goes to wallet (real money)
+  user.wallet = (user.wallet || 0) + Number(order.amount);
+  // Deposit bonus goes to bonus (play-only balance)
   if (bonusAmount > 0) {
     user.bonus = (user.bonus || 0) + bonusAmount;
   }
@@ -134,7 +136,7 @@ const handleDepositSuccessCallback = async (callbackData, io) => {
   ]);
 
   // Award referral bonus (first-deposit based, settings-driven)
-  await awardReferralBonusForFirstDeposit(user, {
+  const referralResult = await awardReferralBonusForFirstDeposit(user, {
     hasCompletedDepositBefore: alreadyDepositedBefore,
     depositAmount: creditedAmount,
   });
@@ -148,10 +150,10 @@ const handleDepositSuccessCallback = async (callbackData, io) => {
     bonusPercent: percentApplied,
   });
 
-  if (user.telegramId) {
-    const bonusText = bonusAmount > 0 ? ` (+${bonusAmount} coins bonus)` : "";
-    const message = `Your deposit of ${order.amount} coins${bonusText} has been successfully processed! New wallet balance: ${user.wallet} coins`;
-    const adminMessage = `A deposit of ${order.amount} coins${bonusText} has been successfully processed for user ${user.fullName}. New wallet balance: ${user.wallet} coins`;
+  if (user.telegramId && !user.telegramId.startsWith("web_")) {
+    const bonusText = bonusAmount > 0 ? ` (+${bonusAmount} ETB bonus)` : "";
+    const message = `Your deposit of ${order.amount} ETB${bonusText} has been successfully processed! New wallet balance: ${user.wallet} ETB`;
+    const adminMessage = `A deposit of ${order.amount} ETB${bonusText} has been successfully processed for user ${user.fullName}. New wallet balance: ${user.wallet} ETB`;
     try {
       await NotifyUserTelegram(user.telegramId, message);
       await sendTelegramMessage(adminMessage);
@@ -168,18 +170,13 @@ const handleDepositSuccessCallback = async (callbackData, io) => {
     }
   }
 
-  // Emit real-time wallet update
-  if (io) {
-    io.to(user._id.toString()).emit("walletUpdate", { wallet: user.wallet, bonus: user.bonus });
-  }
-
   logger.info("Deposit transaction processed", {
     nonce,
     status: transaction.status,
     userId: user._id,
   });
 
-  return transaction;
+  return { transaction, referralResult, user };
 };
 
 const handleDepositFailureCallback = async (callbackData) => {
@@ -246,11 +243,14 @@ const handleDepositFailureCallback = async (callbackData) => {
   });
 
   if (user.telegramId) {
-    const message = `Your deposit of ${order.amount} coins has failed. Reason: ${paymnet_reason || "Unknown"
-      }`;
-    const adminMessage = `A deposit of ${order.amount
-      } coins has failed for user ${user.fullName}. Reason: ${paymnet_reason || "Unknown"
-      }`;
+    const message = `Your deposit of ${order.amount} ETB has failed. Reason: ${
+      paymnet_reason || "Unknown"
+    }`;
+    const adminMessage = `A deposit of ${
+      order.amount
+    } ETB has failed for user ${user.fullName}. Reason: ${
+      paymnet_reason || "Unknown"
+    }`;
     try {
       await NotifyUserTelegram(user.telegramId, message);
       await sendTelegramMessage(adminMessage);
@@ -276,7 +276,7 @@ const handleDepositFailureCallback = async (callbackData) => {
   return transaction;
 };
 
-const handleWithdrawalCallback = async (callbackData, io) => {
+const handleWithdrawalCallback = async (callbackData) => {
   const { resource_id, data, event_type, signature } = callbackData;
   const { id: transaction_id, status, amount } = data || {};
 
@@ -363,8 +363,8 @@ const handleWithdrawalCallback = async (callbackData, io) => {
     });
 
     if (user.telegramId) {
-      const message = `✅ Your withdrawal of ${amount} coins has been successfully processed! New wallet balance: ${user.wallet} coins`;
-      const adminMessage = `✅ A withdrawal of ${amount} coins has been successfully processed for user ${user.fullName}. New wallet balance: ${user.wallet} coins`;
+      const message = `✅ Your withdrawal of ${amount} ETB has been successfully processed! New wallet balance: ${user.wallet} ETB`;
+      const adminMessage = `✅ A withdrawal of ${amount} ETB has been successfully processed for user ${user.fullName}. New wallet balance: ${user.wallet} ETB`;
       try {
         await NotifyUserTelegram(user.telegramId, message);
         await sendTelegramMessage(adminMessage);
@@ -379,11 +379,6 @@ const handleWithdrawalCallback = async (callbackData, io) => {
           error: notificationError.message,
         });
       }
-    }
-
-    // Emit real-time wallet update
-    if (io) {
-      io.to(user._id.toString()).emit("walletUpdate", { wallet: user.wallet, bonus: user.bonus });
     }
   } else {
     transaction.status = TransactionStatus.FAILED;
@@ -407,11 +402,14 @@ const handleWithdrawalCallback = async (callbackData, io) => {
     });
 
     if (user.telegramId) {
-      const message = `❌ Your withdrawal of ${amount} coins has failed. Reason: ${status || "Unknown"
-        }. Amount has been refunded to your wallet: ${user.wallet} coins`;
-      const adminMessage = `❌ A withdrawal of ${amount} coins has failed for user ${user.fullName
-        }. Reason: ${status || "Unknown"}. Wallet balance restored: ${user.wallet
-        } coins`;
+      const message = `❌ Your withdrawal of ${amount} ETB has failed. Reason: ${
+        status || "Unknown"
+      }. Amount has been refunded to your wallet: ${user.wallet} ETB`;
+      const adminMessage = `❌ A withdrawal of ${amount} ETB has failed for user ${
+        user.fullName
+      }. Reason: ${status || "Unknown"}. Wallet balance restored: ${
+        user.wallet
+      } ETB`;
       try {
         await NotifyUserTelegram(user.telegramId, message);
         await sendTelegramMessage(adminMessage);
@@ -426,11 +424,6 @@ const handleWithdrawalCallback = async (callbackData, io) => {
           error: notificationError.message,
         });
       }
-    }
-
-    // Emit real-time wallet update (refund case)
-    if (io) {
-      io.to(user._id.toString()).emit("walletUpdate", { wallet: user.wallet, bonus: user.bonus });
     }
   }
 

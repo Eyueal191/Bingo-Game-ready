@@ -29,7 +29,6 @@ const gameRoomSchema = new mongoose.Schema({
   ],
   houseProfit: { type: Number, default: 0 },
   completedAt: { type: Date, default: null },
-  playingStartedAt: { type: Date, default: null },
   // Bonus system fields
   bonusEnabled: { type: Boolean, default: false },
   bonusAmount: { type: Number, default: 0 },

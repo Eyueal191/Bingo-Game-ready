@@ -1,5 +1,5 @@
 const Transaction = require("../models/Transaction").Transaction;
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 
 const GameRoom = require("../models/gameRoom");
 const Receipt = require("../models/Receipt");

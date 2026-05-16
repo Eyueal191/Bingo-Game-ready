@@ -15,7 +15,6 @@ const CONFIG = require("../config/config");
 const User = require("../models/userModels");
 const Reservation = require("../models/reservationModel");
 const { getAppSettings } = require("../services/appSettingsService");
-const { getAddisPayPhoneFormat, normalizeEthiopianPhone } = require("../utils/phoneUtils");
 
 const {
   Transaction,
@@ -54,16 +53,13 @@ const deposit = async (req, res) => {
   if (!user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-
-
-
   try {
     const { identity, walletRules } = await getAppSettings();
     const minDeposit = Number(walletRules?.minDepositAmount) || 50;
     const depositReason = buildDepositReason(identity?.appName);
     const { amount, paymentMethod, phone } = req.body;
     if (!amount || amount < minDeposit) {
-      throw new Error(`Amount must be at least ${minDeposit} coins`);
+      throw new Error(`Amount must be at least ${minDeposit} ETB`);
     }
     if (!paymentMethod) {
       throw new Error("Payment method is required");
@@ -73,23 +69,19 @@ const deposit = async (req, res) => {
       throw new Error("Phone number is required");
     }
 
-    // Use new phone utils to validate and convert to AddisPay format
-
-    // Attempt to normalize the phone number as an Ethiopian number
-    const normalized = normalizeEthiopianPhone(phoneNumber);
-    if (!normalized) {
-      throw new Error(
-        "Invalid Ethiopian phone format. Use 09..., 07..., or +251... followed by 9 digits"
-      );
+    if (phoneNumber.startsWith("09") || phoneNumber.startsWith("07")) {
+      phoneNumber = `251${phoneNumber.slice(1)}`;
+    } else if (phoneNumber.startsWith("251")) {
+      phoneNumber = `${phoneNumber}`;
+    } else if (!phoneNumber.startsWith("+251")) {
+      phoneNumber = `251${phoneNumber}`;
+    } else if (phoneNumber.startsWith("+251")) {
+      phoneNumber = phoneNumber.replace("+", "");
     }
 
-    // Convert to AddisPay format (without +)
-    phoneNumber = getAddisPayPhoneFormat(normalized);
-
-    // Final defensive check (Safaricom 7 and Ethio Telecom 9)
-    if (!phoneNumber || !/^251[79]\d{8}$/.test(phoneNumber)) {
+    if (!/^251[79]\d{8}$/.test(phoneNumber)) {
       throw new Error(
-        "Invalid Ethiopian phone format. Use 09..., 07..., or +251... followed by 9 digits"
+        "Invalid Ethiopian phone format. Use 09..., 07..., or 251... followed by 9 digits"
       );
     }
 
@@ -125,11 +117,8 @@ const deposit = async (req, res) => {
       amount: amount,
       addispayNonce: nonce,
       status: TransactionStatus.PENDING,
-      description: `Deposited ${amount} coins`,
+      description: `Deposited ${amount} ETB`,
       reference: tx_ref,
-      localAmount: amount, // AddisPay is ETB, which is 1:1 with coins
-      localCurrency: "ETB",
-      exchangeRate: 1,
       metadata: paymentData.data,
     });
     await transaction.save();
@@ -198,19 +187,11 @@ const withdraw = async (req, res) => {
   if (!user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  if (user.country !== "ET") {
-    return res.status(403).json({
-      error: "Automatic withdrawal is only available for Ethiopian users."
-    });
-  }
-
   let walletDebited = false;
   let transaction = null;
   let tx_ref = null;
   let normalizedAmount = 0;
   let autoReleasedWithdrawalId = null;
-
-
   try {
     const { identity, walletRules } = await getAppSettings();
     const minWithdrawal = Number(walletRules?.minWithdrawalAmount) || 100;
@@ -224,7 +205,7 @@ const withdraw = async (req, res) => {
       throw new Error("Invalid withdrawal amount");
     }
     if (normalizedAmount < minWithdrawal) {
-      throw new Error(`Amount must be at least ${minWithdrawal} coins`);
+      throw new Error(`Amount must be at least ${minWithdrawal} ETB`);
     }
     if (!paymentMethod) {
       throw new Error("Payment method is required");
@@ -235,23 +216,19 @@ const withdraw = async (req, res) => {
       throw new Error("Phone number is required");
     }
 
-    // Use new phone utils to validate and convert to AddisPay format
-
-    // Attempt to normalize the phone number as an Ethiopian number
-    const normalized = normalizeEthiopianPhone(phoneNumber);
-    if (!normalized) {
-      throw new Error(
-        "Invalid Ethiopian phone format. Use 09..., 07..., or +251... followed by 9 digits"
-      );
+    if (phoneNumber.startsWith("09") || phoneNumber.startsWith("07")) {
+      phoneNumber = `251${phoneNumber.slice(1)}`;
+    } else if (phoneNumber.startsWith("251")) {
+      phoneNumber = `${phoneNumber}`;
+    } else if (!phoneNumber.startsWith("+251")) {
+      phoneNumber = `251${phoneNumber}`;
+    } else if (phoneNumber.startsWith("+251")) {
+      phoneNumber = phoneNumber.replace("+", "");
     }
 
-    // Convert to AddisPay format (without +)
-    phoneNumber = getAddisPayPhoneFormat(normalized);
-
-    // Final defensive check (Safaricom 7 and Ethio Telecom 9)
-    if (!phoneNumber || !/^251[79]\d{8}$/.test(phoneNumber)) {
+    if (!/^251[79]\d{8}$/.test(phoneNumber)) {
       throw new Error(
-        "Invalid Ethiopian phone format. Use 09..., 07..., or +251... followed by 9 digits"
+        "Invalid Ethiopian phone format. Use 09..., 07..., or 251... followed by 9 digits"
       );
     }
 
@@ -269,7 +246,7 @@ const withdraw = async (req, res) => {
       const isStale =
         lastActivity &&
         Date.now() - new Date(lastActivity).getTime() >
-        PENDING_WITHDRAWAL_TIMEOUT_MS;
+          PENDING_WITHDRAWAL_TIMEOUT_MS;
 
       if (isStale) {
         const staleTransaction = await Transaction.findOneAndUpdate(
@@ -295,6 +272,11 @@ const withdraw = async (req, res) => {
           );
           user.wallet = (user.wallet || 0) + staleTransaction.amount;
           autoReleasedWithdrawalId = staleTransaction._id;
+          
+          if (req.io) {
+             req.io.to(user._id.toString()).emit("walletUpdate", { wallet: user.wallet, bonus: user.bonus });
+          }
+          
           logger.warn("Pending withdrawal auto-cancelled after timeout", {
             userId: user._id,
             transactionId: staleTransaction._id,
@@ -323,7 +305,7 @@ const withdraw = async (req, res) => {
 
     if (user.wallet < normalizedAmount + minBalance) {
       throw new Error(
-        `Insufficient balance. Minimum remaining balance is ${minBalance} coins`
+        `Insufficient balance. Minimum remaining balance is ${minBalance} ETB`
       );
     }
     // Check if user has deposited at least the configured times
@@ -411,7 +393,7 @@ const withdraw = async (req, res) => {
 
     if (!walletUpdateResult.modifiedCount) {
       throw new Error(
-        `Insufficient balance. Minimum remaining balance is ${minBalance} coins`
+        `Insufficient balance. Minimum remaining balance is ${minBalance} ETB`
       );
     }
     walletDebited = true;
@@ -425,7 +407,7 @@ const withdraw = async (req, res) => {
         cancel_url: CONFIG.cancelUrl,
         success_url: CONFIG.withdrawalSuccessUrl || CONFIG.successUrl,
         error_url: CONFIG.withdrawalErrorUrl || CONFIG.errorUrl,
-        order_reason: withdrawalReason,
+  order_reason: withdrawalReason,
         currency: "ETB",
         customer_name: user.fullName || "User",
         phone_number: phoneNumber,
@@ -443,7 +425,7 @@ const withdraw = async (req, res) => {
       amount: normalizedAmount,
       addispayNonce: tx_ref, // Use tx_ref to match resource_id
       status: TransactionStatus.PENDING,
-      description: `request Withdrawal of ${normalizedAmount} coins`,
+      description: `request Withdrawal of ${normalizedAmount} ETB`,
       reference: tx_ref,
       metadata: payoutData.data,
     });
@@ -595,12 +577,29 @@ const getStatus = async (req, res) => {
 const depositSuccessCallback = async (req, res) => {
   try {
     const callbackData = req.body;
-    const transaction = await handleDepositSuccessCallback(callbackData, req.io);
+    const { transaction, referralResult, user: updatedUser } = await handleDepositSuccessCallback(callbackData);
     logger.info("Deposit success callback processed", {
       transactionId: transaction._id,
       status: transaction.status,
       nonce: callbackData.nonce,
     });
+    
+    if (req.io) {
+      // Emit to depositor
+      req.io.to(updatedUser._id.toString()).emit("walletUpdate", { 
+        wallet: updatedUser.wallet, 
+        bonus: updatedUser.bonus 
+      });
+      
+      // Emit to inviter if bonus was awarded
+      if (referralResult?.inviter?._id) {
+        req.io.to(referralResult.inviter._id.toString()).emit("walletUpdate", {
+          wallet: referralResult.inviter.wallet,
+          bonus: referralResult.inviter.bonus,
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
       transactionId: transaction._id,
@@ -647,7 +646,7 @@ const depositFailureCallback = async (req, res) => {
 const withdrawalCallback = async (req, res) => {
   try {
     const callbackData = req.body;
-    const transaction = await handleWithdrawalCallback(callbackData, req.io);
+    const transaction = await handleWithdrawalCallback(callbackData);
     logger.info("Withdrawal callback processed", {
       transactionId: transaction._id,
       status: transaction.status,

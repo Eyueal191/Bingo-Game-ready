@@ -24,16 +24,13 @@ const transactionSchema = new Schema(
     bonusAmount: { type: Number, default: 0, min: 0 },
     bonusPercent: { type: Number, default: 0, min: 0, max: 100 },
     transactionId: { type: String, required: false },
-    paymentMethod: { type: String, required: false },
+    paymentMethod: { type: String, enum: ["CBE", "Telebirr", "Abyssinia", "CBEBirr", "Dashen"], required: false },
     description: { type: String },
-    localAmount: { type: Number },
-    localCurrency: { type: String },
-    exchangeRate: { type: Number },
     receiptId: { type: Schema.Types.ObjectId, ref: "Receipts", default: null },
     date: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
-const DepositRequest = mongoose.model("DepositRequest", transactionSchema, "manualtransactions");
-module.exports = DepositRequest;
+const Transaction = mongoose.model("ManualTransactions", transactionSchema);
+module.exports = Transaction;

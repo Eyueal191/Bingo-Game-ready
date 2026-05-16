@@ -43,10 +43,11 @@ exports.getPublicConfig = async (req, res) => {
       leaderboard: settings.leaderboard,
       walletRules: settings.walletRules,
       depositBonus: settings.depositBonus,
+      paymentAccounts: settings.paymentAccounts,
+      botPayments: settings.botPayments,
       promoBanner: settings.promoBanner || { enabled: false },
       robotEnabledGlobal: settings.robotEnabledGlobal,
       bingoCallBonus: cfg.bingoCallBonus || { perStake: {} },
-      ludo: cfg.ludo || {},
     };
     res.json(out);
   } catch (e) {

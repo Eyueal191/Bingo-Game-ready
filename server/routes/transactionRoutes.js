@@ -11,11 +11,11 @@ const {
 
 const router = express.Router();
 
-const { authenticate, isAdmin, isFinance } = require("../middlewares/auth");
+const { authenticate, isAdmin } = require("../middlewares/auth");
 const asyncHandler = require("../utils/asyncHandler");
 
-// Admin/Finance route
-router.get("/all", authenticate, isFinance, asyncHandler(getAllAddispayTransactions));
+// Admin route (assumed to be protected by admin middleware elsewhere)
+router.get("/all", authenticate, isAdmin, asyncHandler(getAllAddispayTransactions));
 // User route with authentication middleware
 router.get("/mine", authenticate, asyncHandler(getUserTransactions));
 // Bonus transactions route

@@ -1,15 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
-const { authenticate, isAdmin, isManager, isFinance } = require("../middlewares/auth");
+const { authenticate, isAdmin } = require("../middlewares/auth");
 const asyncHandler = require("../utils/asyncHandler");
-
-// Middleware to pass io to controllers
-router.use((req, res, next) => {
-  req.io = req.app.get("io");
-  next();
-});
-
 const allowAdminOrSelfTelegramId = (req, res, next) => {
   const paramTelegramId = req.params.telegramId?.toString();
   const userTelegramId = req.user?.telegramId?.toString();
@@ -22,8 +15,7 @@ const allowAdminOrSelfTelegramId = (req, res, next) => {
   return res.status(403).json({ message: "Forbidden" });
 };
 
-// Manager+ can view all users
-router.get("/all", authenticate, isManager, asyncHandler(userController.getAllUsers));
+router.get("/all", authenticate, isAdmin, asyncHandler(userController.getAllUsers));
 // Place specific routes BEFORE the generic "/:id" to avoid shadowing
 router.get(
   "/by-telegram-id/:telegramId",
@@ -40,37 +32,26 @@ router.get(
 router.get(
   "/invited/:invitedBy",
   authenticate,
-  isManager,
+  isAdmin,
   asyncHandler(userController.getUsersByInvitedCode)
 );
 // Admin: Get all agents with stats
 router.get(
   "/admin/agents-with-stats",
   authenticate,
-  isManager,
+  isAdmin,
   asyncHandler(userController.getAllAgentsWithStats)
 );
-// Manager+ can view user summary
-router.get("/:id/summary", authenticate, isManager, asyncHandler(userController.getUserSummary));
+router.get("/:id/summary", authenticate, isAdmin, asyncHandler(userController.getUserSummary));
 
-// Manager+ can view user details
-router.get("/:id", authenticate, isManager, asyncHandler(userController.getUserById));
-
-// Finance+ can update wallet
+router.get("/:id", authenticate, isAdmin, asyncHandler(userController.getUserById));
 router.put(
   "/:id/wallet",
   authenticate,
-  isFinance,
+  isAdmin,
   asyncHandler(userController.updateWallet)
 );
-router.put(
-  "/:id/bonus",
-  authenticate,
-  isFinance,
-  asyncHandler(userController.updateBonus)
-);
-
-// Admin-only actions: delete, ban, unban, role change
+// Admin protected actions
 router.delete(
   "/delete/:id",
   authenticate,

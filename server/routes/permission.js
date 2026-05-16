@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate, isAdmin , isGameManager} = require("../middlewares/auth");
+const { authenticate, isAdmin } = require("../middlewares/auth");
 const asyncHandler = require("../utils/asyncHandler");
 const {
   registerGameManager,
@@ -24,7 +24,7 @@ router.get(
 router.patch(
   "/:userId",
   authenticate,
-  isGameManager, // Allow managers and admins
+  isAdmin,
   asyncHandler(updateUserPermissions)
 );
 router.get(

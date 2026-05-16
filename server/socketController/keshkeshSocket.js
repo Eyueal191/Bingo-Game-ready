@@ -1,11 +1,9 @@
 const mongoose = require("mongoose");
 
-const {
-  Game, User, GameParticipant, Payout, SpinLog } = require("../models");
+const{
+  Game, User, GameParticipant, Payout, SpinLog}  = require("../models");
 const logger = require("../utils/winstonLogger");
-const notify = require("../botController/notification");
-const crypto = require("crypto");
-const walletService = require("../services/walletService");
+const { NotifyUserTelegram } = require("../botController/notification");
 
 const initializeKeshKeshSocket = (io) => {
   io.on("connection", (socket) => {
@@ -94,10 +92,10 @@ const initializeKeshKeshSocket = (io) => {
                   ],
                   { session }
                 );
-                await walletService.creditWinAtomic(
-                  winner.user_id._id || winner.user_id,
-                  prize,
-                  session
+                await User.updateOne(
+                  { _id: winner.user_id._id || winner.user_id },
+                  { $inc: { wallet: prize } },
+                  { session }
                 );
                 walletChangedUserIds.add(
                   String(winner.user_id._id || winner.user_id)
@@ -108,10 +106,10 @@ const initializeKeshKeshSocket = (io) => {
                   { $set: { status: "paid" } },
                   { session }
                 );
-                await walletService.creditWinAtomic(
-                  winner.user_id._id || winner.user_id,
-                  prize,
-                  session
+                await User.updateOne(
+                  { _id: winner.user_id._id || winner.user_id },
+                  { $inc: { wallet: prize } },
+                  { session }
                 );
                 walletChangedUserIds.add(
                   String(winner.user_id._id || winner.user_id)
@@ -133,11 +131,16 @@ const initializeKeshKeshSocket = (io) => {
         // Emit wallet updates after commit
         for (const id of walletChangedUserIds) {
           try {
-            const u = await User.findById(id).select("wallet bonus");
-            if (u)
+            const u = await User.findById(id).select("wallet bonus telegramId role isRobot");
+            if (u) {
               io.to(id.toString()).emit("walletUpdate", { wallet: u.wallet, bonus: u.bonus });
+              const isRobotUser = u.isRobot || u.role === "robot";
+              if (u.telegramId && !isRobotUser && !u.telegramId.startsWith("web_")) {
+                await NotifyUserTelegram(u.telegramId, `🔴 Kesh-Kesh Win!\nYou've won from a recent game. Your new wallet balance is ${u.wallet} ETB.`);
+              }
+            }
           } catch (e) {
-            logger.error(`Failed to emit walletUpdate for ${id}: ${e.message}`);
+            logger.error(`Failed to emit walletUpdate or notify for ${id}: ${e.message}`);
           }
         }
 
@@ -184,11 +187,11 @@ const initializeKeshKeshSocket = (io) => {
               game.prize_tiers && game.prize_tiers.length
                 ? [...game.prize_tiers].sort((a, b) => a.rank - b.rank)
                 : [
-                  {
-                    rank: 1,
-                    percent: Math.max(0, 100 - (game.system_benefit || 0)),
-                  },
-                ];
+                    {
+                      rank: 1,
+                      percent: Math.max(0, 100 - (game.system_benefit || 0)),
+                    },
+                  ];
             const totalPool = game.bet_amount * game.max_players;
             const tiers = tierPercents.map((t) => ({
               rank: t.rank,
@@ -285,11 +288,11 @@ const initializeKeshKeshSocket = (io) => {
             game.prize_tiers && game.prize_tiers.length
               ? [...game.prize_tiers].sort((a, b) => a.rank - b.rank)
               : [
-                {
-                  rank: 1,
-                  percent: Math.max(0, 100 - (game.system_benefit || 0)),
-                },
-              ];
+                  {
+                    rank: 1,
+                    percent: Math.max(0, 100 - (game.system_benefit || 0)),
+                  },
+                ];
           const totalPool = game.bet_amount * game.max_players;
           const tiers = tierPercents.map((t) => ({
             rank: t.rank,
@@ -328,11 +331,11 @@ const initializeKeshKeshSocket = (io) => {
               game.prize_tiers && game.prize_tiers.length
                 ? [...game.prize_tiers].sort((a, b) => a.rank - b.rank)
                 : [
-                  {
-                    rank: 1,
-                    percent: Math.max(0, 100 - (game.system_benefit || 0)),
-                  },
-                ];
+                    {
+                      rank: 1,
+                      percent: Math.max(0, 100 - (game.system_benefit || 0)),
+                    },
+                  ];
             const totalPool = game.bet_amount * game.max_players;
             const tiers = tierPercents.map((t) => ({
               rank: t.rank,
@@ -424,14 +427,13 @@ const initializeKeshKeshSocket = (io) => {
 
     // Join a room to receive updates
     socket.on("join_keshkesh", async (gameId) => {
-      let game;
       try {
         if (!gameId) {
           socket.emit("error", { message: "Invalid gameId", gameId });
           return;
         }
 
-         game = await Game.findById(gameId).populate({
+        let game = await Game.findById(gameId).populate({
           path: "participants",
           populate: { path: "user_id", select: "fullName" },
         });
@@ -473,11 +475,11 @@ const initializeKeshKeshSocket = (io) => {
           game.prize_tiers && game.prize_tiers.length
             ? [...game.prize_tiers].sort((a, b) => a.rank - b.rank)
             : [
-              {
-                rank: 1,
-                percent: Math.max(0, 100 - (game.system_benefit || 0)),
-              },
-            ];
+                {
+                  rank: 1,
+                  percent: Math.max(0, 100 - (game.system_benefit || 0)),
+                },
+              ];
         const totalPool = game.bet_amount * game.max_players;
         const tiers = tierPercents.map((t) => ({
           rank: t.rank,
@@ -647,9 +649,10 @@ const initializeKeshKeshSocket = (io) => {
                 throw err;
               }
 
-              // Check funds for the intended numbers only
+              // Check funds for the intended numbers only (wallet + bonus)
               const intendedCost = game.bet_amount * numbersToAdd.length;
-              if ((user.wallet + user.bonus) < intendedCost) {
+              const totalAvailable = (user.wallet || 0) + (user.bonus || 0);
+              if (totalAvailable < intendedCost) {
                 throw new Error("Insufficient balance");
               }
 
@@ -668,7 +671,18 @@ const initializeKeshKeshSocket = (io) => {
 
               if (numbersAdded > 0) {
                 const cost = game.bet_amount * numbersAdded;
-                await walletService.deductForGame(userId, cost, session);
+                // Deduct from wallet first, then bonus
+                let walletUsed = 0;
+                let bonusUsed = 0;
+                if (user.wallet >= cost) {
+                  walletUsed = cost;
+                } else {
+                  walletUsed = user.wallet;
+                  bonusUsed = cost - walletUsed;
+                }
+                user.wallet -= walletUsed;
+                user.bonus -= bonusUsed;
+                await user.save({ session });
               }
             });
           } finally {
@@ -742,22 +756,23 @@ const initializeKeshKeshSocket = (io) => {
           socket.emit("join_success", { gameId, added: addedNumbers || [] });
 
           if (user) {
-            const freshBal = await User.findById(userId).select("wallet bonus");
             io.to(userId.toString()).emit("walletUpdate", {
-              wallet: freshBal?.wallet ?? 0,
-              bonus: freshBal?.bonus ?? 0,
+              wallet: user.wallet,
+              bonus: user.bonus,
             });
 
             // Telegram confirmation to the purchasing user
             try {
+              const notify = require("../botController/notification.js");
               const freshUser = await User.findById(userId);
               if (freshUser && freshUser.telegramId) {
                 const perPrice = updatedGame.bet_amount;
                 const totalPaid = perPrice * (addedNumbers?.length || 0);
-                const msg = `🎫 KESH-KESH TICKET CONFIRMATION\n\nNumbers: ${(addedNumbers || []).join(", ") || "-"
-                  }\nPrice per number: ${perPrice} coins\nTotal paid: ${totalPaid} coins\nNew balance: ${freshUser.wallet.toFixed(
-                    2
-                  )} coins`;
+                const msg = `🎫 KESH-KESH TICKET CONFIRMATION\n\nNumbers: ${
+                  (addedNumbers || []).join(", ") || "-"
+                }\nPrice per number: ${perPrice} ETB\nTotal paid: ${totalPaid} ETB\nNew balance: ${freshUser.wallet.toFixed(
+                  2
+                )} ETB`;
                 await notify.NotifyUserTelegram(freshUser.telegramId, msg);
               }
             } catch (notifyErr) {
@@ -842,8 +857,9 @@ const initializeKeshKeshSocket = (io) => {
             io.to(gameId).emit("gameUpdate", {
               type: "status",
               status: "in_progress",
-              message: `${refreshedGame.gameType || "Kesh-Kesh"
-                } game starting...`,
+              message: `${
+                refreshedGame.gameType || "Kesh-Kesh"
+              } game starting...`,
               gameType: refreshedGame.gameType || "keshkesh",
               roomId: String(gameId),
             });
@@ -885,14 +901,79 @@ const initializeKeshKeshSocket = (io) => {
               const available = [...allNumbers];
 
               const winners = [];
+              // If fetan-spin, prepare segments for wheel UI (one slice per ticket)
+              let segments = null;
+              if ((refreshedGame2.gameType || "keshkesh") === "fetan-spin") {
+                segments = allNumbers.map((a, i) => ({
+                  id: i,
+                  label: a.user.fullName || String(a.user._id).slice(0, 6),
+                  number: a.number,
+                }));
+              }
 
               for (const t of sortedTiers) {
                 if (available.length === 0) break;
-                const idx = crypto.randomInt(0, available.length);
+                const idx = Math.floor(Math.random() * available.length);
                 const pick = available[idx];
                 winners.push({ rank: t.rank, pick, amount: t.amount });
 
-                // Fetan-spin logic decoupled from keshkesh.
+                // If fetan-spin: prepare a commit-reveal and emit prepare -> start
+                if ((refreshedGame2.gameType || "keshkesh") === "fetan-spin") {
+                  const crypto = require("crypto");
+                  const spinId = `${gameId.toString()}-${Date.now()}-${t.rank}`;
+                  const seed = crypto.randomBytes(16).toString("hex");
+                  const commitHash = crypto
+                    .createHash("sha256")
+                    .update(seed)
+                    .digest("hex");
+                  // store prepare record
+                  try {
+                    await SpinLog.create({
+                      spinId,
+                      gameId,
+                      rank: t.rank,
+                      commitHash,
+                      seed,
+                      segmentsCount: segments.length,
+                      status: "prepared",
+                    });
+                  } catch (e) {
+                    logger.error(`Failed to create SpinLog: ${e.message}`);
+                  }
+
+                  // emit prepare with commitHash so clients can show it
+                  io.to(gameId).emit("fetan_spin_prepare", {
+                    roomId: String(gameId),
+                    spinId,
+                    commitHash,
+                    issuedAt: Date.now(),
+                    gameType: "fetan-spin",
+                  });
+
+                  // small delay before start so clients can render commit
+                  await new Promise((res) => setTimeout(res, 600));
+
+                  const durationMs = 4500;
+                  // emit start with targetIndex
+                  await SpinLog.updateOne(
+                    { spinId },
+                    { $set: { status: "started" } }
+                  ).catch(() => {});
+                  io.to(gameId).emit("fetan_spin_start", {
+                    roomId: String(gameId),
+                    spinId,
+                    segments,
+                    targetIndex: idx,
+                    durationMs,
+                    rank: t.rank,
+                    gameType: "fetan-spin",
+                  });
+                  // wait for animation + small buffer
+                  await new Promise((res) => setTimeout(res, durationMs + 500));
+
+                  // after animation, reveal seed and persist result later after payout
+                  // we'll save seed after payouts below when emitting result
+                }
 
                 // Remove picked number to avoid duplicates
                 available.splice(idx, 1);
@@ -901,40 +982,36 @@ const initializeKeshKeshSocket = (io) => {
                   p._id.equals(pick.participant._id)
                 );
                 if (part) {
-                  const session = await mongoose.startSession();
                   try {
-                    await session.withTransaction(async () => {
-                      // Use atomic update to avoid version conflicts on subdocuments
-                      await Game.updateOne(
-                        { _id: gameId, "participants._id": part._id },
-                        { $addToSet: { "participants.$.rank": t.rank } },
-                        { session }
-                      );
-
-                      const winUser = await User.findById(part.user_id).session(session);
-                      if (winUser) {
-                        winUser.wallet += t.amount;
-                        await winUser.save({ session });
-                      }
-
-                      await Payout.create([{
-                        user_id: part.user_id,
-                        game_id: gameId,
-                        amount: t.amount,
-                        rank: t.rank,
-                        status: "paid",
-                      }], { session });
-                    });
+                    // Use atomic update to avoid version conflicts on subdocuments
+                    await Game.updateOne(
+                      { _id: gameId, "participants._id": part._id },
+                      { $addToSet: { "participants.$.rank": t.rank } }
+                    ).catch(() => {});
                   } catch (e) {
-                    logger.error(`Failed to execute keshkesh payout transaction: ${e.message}`);
-                  } finally {
-                    session.endSession();
+                    logger.error(
+                      `Failed to update participant rank: ${e.message}`
+                    );
                   }
 
-                  const updatedUser = await User.findById(part.user_id);
-                  if (part.user_id && updatedUser) {
+                  const winUser = await User.findById(part.user_id);
+                  if (winUser) {
+                    winUser.wallet += t.amount;
+                    await winUser.save().catch(() => {});
+                  }
+
+                  await Payout.create({
+                    user_id: part.user_id,
+                    game_id: gameId,
+                    amount: t.amount,
+                    rank: t.rank,
+                    status: "paid",
+                  }).catch(() => {});
+
+                  if (part.user_id) {
                     io.to(part.user_id.toString()).emit("walletUpdate", {
-                      wallet: updatedUser.wallet,
+                      wallet: winUser ? winUser.wallet : null,
+                      bonus: winUser ? winUser.bonus : null,
                     });
                   }
                 }
@@ -949,7 +1026,54 @@ const initializeKeshKeshSocket = (io) => {
                   roomId: String(gameId),
                 });
 
-                // Fetan-spin result logic decoupled.
+                // Emit fetan_spin_result for this rank if fetan-spin (reveal seed)
+                if ((refreshedGame2.gameType || "keshkesh") === "fetan-spin") {
+                  try {
+                    const log = await SpinLog.findOne({
+                      gameId,
+                      rank: t.rank,
+                    }).sort({ createdAt: -1 });
+                    const seed = log?.seed || null;
+                    const spinId =
+                      log?.spinId ||
+                      `${gameId.toString()}-${Date.now()}-${t.rank}`;
+                    // update record as completed with seed and targetIndex
+                    await SpinLog.updateOne(
+                      { spinId },
+                      { $set: { status: "completed", seed, targetIndex: idx } }
+                    ).catch(() => {});
+                    io.to(gameId).emit("fetan_spin_result", {
+                      roomId: String(gameId),
+                      spinId,
+                      rank: t.rank,
+                      winner: {
+                        userId: pick.user._id,
+                        fullName: pick.user.fullName,
+                        number: pick.number,
+                      },
+                      prize: t.amount,
+                      seed: seed || null,
+                      gameType: "fetan-spin",
+                    });
+                  } catch (e) {
+                    logger.error(
+                      `Failed to emit fetan_spin_result: ${e.message}`
+                    );
+                    io.to(gameId).emit("fetan_spin_result", {
+                      roomId: String(gameId),
+                      spinId: `${gameId.toString()}-${Date.now()}-${t.rank}`,
+                      rank: t.rank,
+                      winner: {
+                        userId: pick.user._id,
+                        fullName: pick.user.fullName,
+                        number: pick.number,
+                      },
+                      prize: t.amount,
+                      seed: null,
+                      gameType: "fetan-spin",
+                    });
+                  }
+                }
 
                 // small delay between ranks to mimic previous behavior
                 await new Promise((res) => setTimeout(res, 1500));
@@ -1006,7 +1130,7 @@ const initializeKeshKeshSocket = (io) => {
 
               // Notifications for all participants
               try {
-
+                const notification = require("../botController/notification.js");
                 const allParticipantIds = afterWinnersGame.participants.map(
                   (p) => p.user_id._id
                 );
@@ -1023,21 +1147,23 @@ const initializeKeshKeshSocket = (io) => {
                     let message = `🎰 <b>KESH-KESH GAME RESULTS</b> 🎰\n\nDraw Date: ${drawDate}\n━━━━━━━━━━━━━━━━━━\n\n`;
                     message += ` <b>WINNING NUMBERS</b>\n`;
                     for (const w of winners.sort((a, b) => a.rank - b.rank)) {
-                      message += `Rank ${w.rank}: <b>${w.pick.number}</b> (${w.pick.user.fullName}) - ${w.amount} coins\n`;
+                      message += `Rank ${w.rank}: <b>${w.pick.number}</b> (${w.pick.user.fullName}) - ${w.amount} ETB\n`;
                     }
                     const myWins = winners.filter(
                       (w) => String(w.pick.user._id) === String(usr._id)
                     );
-                    message += `\n$${myWins.length
-                      ? `✨ <b>Congratulations ${usr.fullName
-                      }! You won rank ${myWins
-                        .map((x) => x.rank)
-                        .join(", ")}</b>`
-                      : `🙁 <b>You didn't win this time. Try again in the next game!</b>`
-                      }`;
+                    message += `\n$${
+                      myWins.length
+                        ? `✨ <b>Congratulations ${
+                            usr.fullName
+                          }! You won rank ${myWins
+                            .map((x) => x.rank)
+                            .join(", ")}</b>`
+                        : `🙁 <b>You didn't win this time. Try again in the next game!</b>`
+                    }`;
                     message += `\n\n🎫 Kesh kesh Tickets for the next game are available now!`;
                     try {
-                      await notify.NotifyUserTelegram(
+                      await notification.NotifyUserTelegram(
                         usr.telegramId,
                         message
                       );
@@ -1093,7 +1219,7 @@ const initializeKeshKeshSocket = (io) => {
                   })),
                   prize_structure: tiersToStructure(
                     afterCompletedGame.bet_amount *
-                    afterCompletedGame.max_players,
+                      afterCompletedGame.max_players,
                     tiersDone
                   ),
                   prize_tiers: tiersDone.map((t) => ({

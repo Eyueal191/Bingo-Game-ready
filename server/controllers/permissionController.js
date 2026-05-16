@@ -3,7 +3,27 @@ const { body, validationResult } = require("express-validator");
 const logger = require("../utils/winstonLogger");
 const { generateReferralCode, createTransaction } = require("./authController");
 const { TransactionType, TransactionStatus } = require("../models/Transaction");
-const { normalizePhone, getSupportedCountries } = require("../utils/phoneUtils");
+
+// Local phone normalizer to avoid relying on non-exported helpers
+const normalizePhone = (phone) => {
+  if (!phone || typeof phone !== "string") {
+    throw new Error("Phone number is required");
+  }
+  let normalized = phone.trim().replace(/[\s-]/g, "");
+  if (normalized.startsWith("09") || normalized.startsWith("07")) {
+    normalized = `+251${normalized.slice(1)}`;
+  } else if (normalized.startsWith("251")) {
+    normalized = `+${normalized}`;
+  } else if (!normalized.startsWith("+251")) {
+    normalized = `+251${normalized}`;
+  }
+  if (!/^\+251[79]\d{8}$/.test(normalized)) {
+    const err = new Error("Invalid Ethiopian phone format");
+    err.status = 400;
+    throw err;
+  }
+  return normalized;
+};
 
 const registerGameManager = [
   // Input validation
@@ -11,13 +31,8 @@ const registerGameManager = [
   body("phone")
     .notEmpty()
     .withMessage("Phone number is required")
-    .custom((value) => {
-      const result = normalizePhone(value);
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      return true;
-    }),
+    .matches(/^\+251[79]\d{8}$/)
+    .withMessage("Invalid Ethiopian phone format"),
   body("gamePermissions.bingo")
     .isBoolean()
     .withMessage("Bingo permission must be boolean"),
@@ -55,12 +70,8 @@ const registerGameManager = [
       const { telegramId, phone, fullName, password, gamePermissions } =
         req.body;
 
-      // Normalize phone using multi-country system
-      const phoneResult = normalizePhone(phone);
-      if (phoneResult.error) {
-        return res.status(400).json({ message: phoneResult.error });
-      }
-      const normalizedPhone = phoneResult.phone;
+      // Normalize phone
+      const normalizedPhone = normalizePhone(phone);
 
       // Handle existing users & conflicts explicitly
       const existingByTelegram = await User.findOne({ telegramId });
@@ -214,7 +225,7 @@ const updateUserPermissions = [
     .optional()
     .isBoolean()
     .withMessage("Keshkesh permission must be boolean"),
-  body("gamePermissions.material_lottery")
+    body("gamePermissions.material_lottery")
     .optional()
     .isBoolean()
     .withMessage("Material lottery permission must be boolean"),
@@ -227,10 +238,10 @@ const updateUserPermissions = [
         return res.status(400).json({ message: errors.array()[0].msg });
       }
 
-      // Only Game Managers (hierarchy includes Admin, Manager) can update permissions
-      if (!req.user || !["admin", "manager"].includes(req.user.role)) {
+      // Only admins can update permissions
+      if (req.user.role !== "admin") {
         return res.status(403).json({
-          message: "Unauthorized: Only managers and admins can update permissions",
+          message: "Unauthorized: Only admins can update permissions",
         });
       }
 
@@ -253,10 +264,9 @@ const updateUserPermissions = [
       // Update fields if provided
       if (role) {
         user.role = role;
-        // Reset gamePermissions for non-game_manager and non-staff roles that don't need them
-        const rolesWithPermissions = ["game_manager", "admin", "manager", "finance", "secretary"];
-        if (!rolesWithPermissions.includes(role)) {
-          user.gamePermissions = { bingo: false, keshkesh: false, material_lottery: false };
+        // Reset gamePermissions for non-game_manager roles
+        if (role !== "game_manager") {
+          user.gamePermissions = { bingo: false, keshkesh: false };
         }
       }
       if (gamePermissions && user.role === "game_manager") {
@@ -269,7 +279,7 @@ const updateUserPermissions = [
             gamePermissions.keshkesh !== undefined
               ? gamePermissions.keshkesh
               : user.gamePermissions.keshkesh,
-          material_lottery:
+           material_lottery:
             gamePermissions.material_lottery !== undefined
               ? gamePermissions.material_lottery
               : user.gamePermissions.material_lottery,

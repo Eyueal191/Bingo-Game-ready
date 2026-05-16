@@ -97,9 +97,11 @@ const sendNotification = async (req, res) => {
         .json({ error: "Amount must be a positive number" });
     }
 
-    // Fetch all players with Telegram chat IDs
+    // Fetch all real players with Telegram chat IDs (exclude robots and web placeholders)
     const players = await User.find({
-      telegramId: { $exists: true, $ne: null },
+      telegramId: { $exists: true, $ne: null, $not: /^web_/ },
+      role: { $ne: "robot" },
+      isRobot: { $ne: true },
     });
     if (!players || players.length === 0) {
       return res

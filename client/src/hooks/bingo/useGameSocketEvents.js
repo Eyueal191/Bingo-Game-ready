@@ -55,14 +55,17 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
       store.setLoading(false);
     };
 
-    const handleRoomData = ({ roomId: payloadRoomId, stakeAmount: payloadStake, bonusEnabled, bonusAmount, bonusDescription }) => {
-      getStore().setRoomData({
+    const handleRoomData = ({ roomId: payloadRoomId, stakeAmount: payloadStake, numberOfPlayers, winAmount, bonusEnabled, bonusAmount, bonusDescription }) => {
+      const store = getStore();
+      store.setRoomData({
         roomId: payloadRoomId,
         stakeAmount: payloadStake,
         bonusEnabled,
         bonusAmount,
         bonusDescription,
       });
+      if (typeof numberOfPlayers === "number") store.setNumberOfPlayers(numberOfPlayers);
+      if (typeof winAmount === "number") store.setWinAmount(winAmount);
     };
 
     const handleSettings = (data) => {

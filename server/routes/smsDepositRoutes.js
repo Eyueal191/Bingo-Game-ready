@@ -7,11 +7,6 @@ const {
 } = require("../controllers/smsDepositController");
 const asyncHandler = require("../utils/asyncHandler");
 
-router.use((req, res, next) => {
-  req.io = req.app.get("io");
-  next();
-});
-
 router.post(
   "/automatic-deposit/validate",
   asyncHandler(validateAutomaticDeposit)

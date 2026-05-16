@@ -26,7 +26,16 @@ const appConfigSchema = new mongoose.Schema(
       enabled: { type: Boolean, default: true },
       includeRobots: { type: Boolean, default: false },
     },
+    paymentAccounts: {
+      type: mongoose.Schema.Types.Mixed,
+      default: undefined,
+    },
 
+    // Bot payment method/flow toggles (admin configurable)
+    botPayments: {
+      type: mongoose.Schema.Types.Mixed,
+      default: undefined,
+    },
 
     depositBonus: {
       enabled: { type: Boolean, default: false },
@@ -71,21 +80,6 @@ const appConfigSchema = new mongoose.Schema(
       },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       updatedAt: { type: Date },
-    },
-
-    bingo: {
-      callInterval: { type: Number, default: 0.4, min: [0.1, "Interval must be at least 0.1 second"] },
-    },
-
-    ludo: {
-      stakes: {
-        type: [Number],
-        default: [10, 20, 30, 50, 100, 200, 300, 500, 700, 1000, 2000, 3000, 5000],
-      },
-      classicModeEnabled: { type: Boolean, default: true },
-      quickModeEnabled: { type: Boolean, default: true },
-      sprintModeEnabled: { type: Boolean, default: true },
-      commissionPercent: { type: Number, default: 10, min: 0, max: 100 },
     },
 
   },

@@ -123,7 +123,7 @@ const PlayerCardsSection = ({
       ) : (
         <div className="text-center p-6 my-4 lg:p-8 bg-bingo-card-alt rounded-xl">
           <div className="flex flex-col items-center gap-3">
-            <p className="text-txt-waiting text-sm lg:text-base font-medium">
+            <p className="text-txt-waiting text-sm lg:text-base font-medium text-yellow-500">
               {enforcedReadOnly
                 ? isDisqualifiedWatcher
                   ? "You're watching this round"

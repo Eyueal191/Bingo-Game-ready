@@ -9,7 +9,6 @@ const createWalletLog = async ({
   balanceAfter,
   reason = "",
   source = "manual",
-  balanceType = "wallet",
   ip,
   userAgent,
 }) => {
@@ -22,7 +21,6 @@ const createWalletLog = async ({
       balanceAfter,
       reason,
       source,
-      balanceType,
       ip,
       userAgent,
     });
@@ -149,29 +147,29 @@ const listWalletLogs = async (req, res) => {
           $or: [
             ...(safe
               ? [
-                { reason: { $regex: safe } },
-                { source: { $regex: safe } },
-                { "targetUser.fullName": { $regex: safe } },
-                { "targetUser.phone": { $regex: safe } },
-                { "targetUser.telegramId": { $regex: safe } },
-                { "performedBy.fullName": { $regex: safe } },
-                { "performedBy.phone": { $regex: safe } },
-                { "performedBy.telegramId": { $regex: safe } },
-              ]
+                  { reason: { $regex: safe } },
+                  { source: { $regex: safe } },
+                  { "targetUser.fullName": { $regex: safe } },
+                  { "targetUser.phone": { $regex: safe } },
+                  { "targetUser.telegramId": { $regex: safe } },
+                  { "performedBy.fullName": { $regex: safe } },
+                  { "performedBy.phone": { $regex: safe } },
+                  { "performedBy.telegramId": { $regex: safe } },
+                ]
               : []),
             ...(targetText
               ? [
-                { "targetUser.fullName": { $regex: targetText } },
-                { "targetUser.phone": { $regex: targetText } },
-                { "targetUser.telegramId": { $regex: targetText } },
-              ]
+                  { "targetUser.fullName": { $regex: targetText } },
+                  { "targetUser.phone": { $regex: targetText } },
+                  { "targetUser.telegramId": { $regex: targetText } },
+                ]
               : []),
             ...(adminText
               ? [
-                { "performedBy.fullName": { $regex: adminText } },
-                { "performedBy.phone": { $regex: adminText } },
-                { "performedBy.telegramId": { $regex: adminText } },
-              ]
+                  { "performedBy.fullName": { $regex: adminText } },
+                  { "performedBy.phone": { $regex: adminText } },
+                  { "performedBy.telegramId": { $regex: adminText } },
+                ]
               : []),
           ],
         },

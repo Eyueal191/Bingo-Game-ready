@@ -91,6 +91,29 @@ export const useGameController = (socket, roomId, userId, authLoading) => {
       return;
     }
 
+    // ── Reset stale game state from previous session ──────────────────────
+    store.setFinishedGame(false);
+    store.setResult(null);
+    store.setWinners([]);
+    store.setWinningCards([]);
+    store.setWinningCombos([]);
+    store.setWinningCardGrids([]);
+    store.setPrizes([]);
+    store.setFirstNames([]);
+    store.setLiveResults([]);
+    store.setDrawnNumbers([]);
+    store.setCurrentNumber(null);
+    store.setPrefixedNumber(null);
+    store.setAnimationTrigger(false);
+    store.setGameStarted(false);
+    store.setStoredCards([]);
+    store.setSharedSelectedNumbers(new Set(["F"]));
+    store.setUserPrize(0);
+    store.setUserLoss(0);
+    store.setLoading(true);
+    store.setError(null);
+    // ─────────────────────────────────────────────────────────────────────
+
     // 1. Restore watcher session limits if they exist
     if (watcherStorageKey) {
       const storedWatcher = sessionStorage.getItem(watcherStorageKey);

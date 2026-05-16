@@ -1,6 +1,6 @@
 const AdminSetting = require("../models/adminSetting");
 const User = require("../models/userModels");
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 const {
   Transaction: WalletTransaction,
   TransactionType,
@@ -32,7 +32,7 @@ const hasCompletedDepositBefore = async (userId) => {
       type: TransactionType.DEPOSIT,
       status: TransactionStatus.COMPLETED,
     }),
-    ManualTransaction.exists({ userId, type: "deposit", source: { $ne: "sms" } }), // Manual (check receipt logic usually separate, but exists is basic check)
+    ManualTransaction.exists({ userId, type: "deposit", source: { $ne: "sms" } }),
     ManualTransaction.exists({
       userId,
       source: "sms",
@@ -117,6 +117,7 @@ const awardReferralBonusForFirstDeposit = async (
     return null;
   }
 
+  // Referral bonus goes to bonus only (not wallet — bonus is play-only balance)
   inviter.bonus = (inviter.bonus || 0) + referralBonusAmount;
   inviter.paidInvitedPlayers = inviter.paidInvitedPlayers || [];
   inviter.paidInvitedPlayers.push(user._id);
@@ -152,13 +153,13 @@ const awardReferralBonusForFirstDeposit = async (
     amount: referralBonusAmount,
   });
 
-  if (inviter.telegramId) {
+  if (inviter.telegramId && inviter.role !== "robot" && !inviter.telegramId.startsWith("web_")) {
     const message =
       `🎉 Referral Bonus Received\n` +
-      `You just earned ${referralBonusAmount.toFixed(2)} coins (` +
-      `${referralBonusPercent}% of ${depositAmount.toFixed(2)} coins) ` +
+      `You just earned ${referralBonusAmount.toFixed(2)} ETB (` +
+      `${referralBonusPercent}% of ${depositAmount.toFixed(2)} ETB) ` +
       `from ${user.fullName || user.phone || "your referral"}.\n` +
-      `New bonus balance: ${inviter.bonus.toFixed(2)} coins.`;
+      `New wallet balance: ${inviter.wallet.toFixed(2)} ETB.`;
 
     try {
       await NotifyUserTelegram(inviter.telegramId, message);
@@ -176,8 +177,8 @@ const awardReferralBonusForFirstDeposit = async (
     `👤 Inviter: ${inviter.fullName || inviter.phone || inviter.telegramId} ` +
     `(${inviter.telegramId || "No Telegram"})\n` +
     `🙋 Referred User: ${user.fullName || user.phone || user.telegramId}\n` +
-    `💰 Deposit: ${depositAmount.toFixed(2)} coins\n` +
-    `🎁 Bonus: ${referralBonusAmount.toFixed(2)} coins (${referralBonusPercent}%).`;
+    `💰 Deposit: ${depositAmount.toFixed(2)} ETB\n` +
+    `🎁 Bonus: ${referralBonusAmount.toFixed(2)} ETB (${referralBonusPercent}%).`;
 
   try {
     await sendTelegramMessage(adminMessage);

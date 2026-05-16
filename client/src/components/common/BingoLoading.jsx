@@ -23,7 +23,7 @@ const BingoLoading = () => {
 
       {/* Optional subtle subtitle */}
       <p className="mt-2 text-white/60 text-sm sm:text-base text-center max-w-xs">
-        Preparing your bingo experience
+        Get ready to Win!
       </p>
 
     </div>

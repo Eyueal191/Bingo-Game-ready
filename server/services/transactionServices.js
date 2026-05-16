@@ -1,4 +1,5 @@
 const  { Transaction, TransactionType, TransactionStatus } =require('../models/Transaction.js');
+const User = require('../models/userModels');
 
 exports.createTransaction = async (userId, amount, type, description) => {
   if (!Number.isFinite(amount) || amount <= 0) {

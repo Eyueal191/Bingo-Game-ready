@@ -161,26 +161,8 @@ exports.insertCardsFromFile = async (req, res) => {
     else if (count === 400) {
       bingoCardsData = require('../data/400Cards');
     }
-    else if(count===500) {
-      bingoCardsData = require('../data/500Cards');
-    }
-    else if(count===1000) {
-      bingoCardsData = require('../data/1000Cards');
-    }
-    else if(count===1500) {
-      bingoCardsData = require('../data/1500Cards');
-    }
-    else if(count===2000) {
-      bingoCardsData = require('../data/2000Cards');
-    }
-    else if(count===2500) {
-      bingoCardsData = require('../data/2500Cards');
-    }
-    else if(count===3000) {
-      bingoCardsData = require('../data/3000Cards');
-    }
     else{
-      return res.status(400).json({ message: 'Invalid count specified. Supported counts are 100, 200, 300, 400, 500, 1000, 1500, 2000, 2500 or 3000.' });
+      return res.status(400).json({ message: 'Invalid count specified. Supported counts are 100, 200, 300, or 400.' });
     }
 
     if (!bingoCardsData || !Array.isArray(bingoCardsData.cards)) {

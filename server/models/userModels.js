@@ -4,14 +4,15 @@ const Schema = mongoose.Schema;
 
 const userSchema = new Schema(
   {
-    telegramId: { type: String, required: false, unique: true, sparse: true },
-    email: { type: String, unique: true, sparse: true },
-    isEmailVerified: { type: Boolean, default: false },
-    emailVerificationToken: { type: String },
-    emailVerificationExpires: { type: Date },
+    telegramId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      required: false,
+    },
 
     fullName: { type: String, required: false },
-    phone: { type: String, unique: true, sparse: true },
+    phone: { type: String, required: true, unique: true },
     password: { type: String, required: false },
     referralCode: { type: String, unique: false },
     tempCards: { type: [String], default: [] },
@@ -28,7 +29,6 @@ const userSchema = new Schema(
       },
     },
     language: { type: String, default: "en" },
-    country: { type: String, uppercase: true, trim: true },
     bonus: {
       type: Number,
       default: 0,
@@ -40,27 +40,14 @@ const userSchema = new Schema(
     ],
     role: {
       type: String,
-      enum: [
-        "user",
-        "admin",
-        "agent",
-        "game_manager",
-        "robot",
-        "finance",
-        "secretary",
-        "manager",
-        "guest",
-      ],
+      enum: ["user", "admin", "agent", "game_manager", "robot"],
       default: "user",
     },
     isRobot: { type: Boolean, default: false }, // Quick flag for robot identification
-    isGuest: { type: Boolean, default: false }, // Quick flag for guest identification
     gamePermissions: {
       bingo: { type: Boolean, default: false },
       keshkesh: { type: Boolean, default: false },
-      spin: { type: Boolean, default: false },
       material_lottery: { type: Boolean, default: false },
-      ludo: { type: Boolean, default: false },
     },
     paidInvitedPlayers: [
       { type: Schema.Types.ObjectId, ref: "Users", default: [] },
@@ -79,17 +66,6 @@ const userSchema = new Schema(
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password") || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
-  next();
-});
-
-// Convert null or empty strings to undefined for sparse indexes
-userSchema.pre("validate", function (next) {
-  if (this.telegramId === null || this.telegramId === "") {
-    this.telegramId = undefined;
-  }
-  if (this.email === null || this.email === "") {
-    this.email = undefined;
-  }
   next();
 });
 

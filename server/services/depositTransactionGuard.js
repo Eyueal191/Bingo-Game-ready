@@ -1,4 +1,4 @@
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 // Removed deposit model import
 
 
@@ -8,6 +8,7 @@ const DuplicateSources = Object.freeze({
 });
 
 const defaultManualProjection = "_id userId amount transactionId type createdAt updatedAt";
+const defaultAutomaticProjection = "_id userId amount transactionId status paymentMethod createdAt updatedAt source";
 
 /**
  * Checks whether the provided transactionId has already been credited via any deposit flow.

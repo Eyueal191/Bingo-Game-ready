@@ -4,7 +4,7 @@ const StakeBonusSettings = require("../models/stakeBonusSettings");
 const logger = require("../utils/winstonLogger");
 const { createWalletLog } = require("./walletLogController");
 const { NotifyUserTelegram } = require("../botController/notification");
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 const { Transaction: AddisTransaction, TransactionType } = require("../models/Transaction");
 const Reservation = require("../models/reservationModel");
 
@@ -16,7 +16,6 @@ exports.getAllUsers = async (req, res) => {
       page = 1,
       limit = 10,
       search = "",
-      role = "",
       startDate,
       endDate,
       sortField = "createdAt",
@@ -28,21 +27,16 @@ exports.getAllUsers = async (req, res) => {
     // Build the query object
     const query = {};
 
-    if (role) {
-      query.role = role;
-    }
-
     const escapeRegex = (str = "") =>
       String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     // Handle search (fullName, phone, referralCode, invitedBy)
     if (search) {
-      const safeSearch = escapeRegex(search);
       query.$or = [
-        { fullName: { $regex: safeSearch, $options: "i" } },
-        { phone: { $regex: safeSearch, $options: "i" } },
-        { referralCode: { $regex: safeSearch, $options: "i" } },
-        { invitedBy: { $regex: safeSearch, $options: "i" } },
+        { fullName: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { referralCode: { $regex: search, $options: "i" } },
+        { invitedBy: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -237,7 +231,6 @@ exports.updateWallet = async (req, res) => {
       amount: amt,
       balanceBefore: before,
       balanceAfter: user.wallet,
-      balanceType: "wallet",
       reason,
       source,
       ip: req.ip,
@@ -253,48 +246,21 @@ exports.updateWallet = async (req, res) => {
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;");
 
-        const adminName = req.user?.fullName || "Admin";
-
-        const isBoost = amt > 0;
-        const sign = amt > 0 ? "+" : "-";
-        const absAmt = Math.abs(amt);
-
-        let title;
-        let subtitle;
-        let emoji;
-
-        if (isBoost) {
-          title = "🎉 <b>Coin Boost!</b>";
-          subtitle = "Nice! Your wallet just got stronger.";
-          emoji = "🪙";
-        } else {
-          title = "🎮 <b>Coins Spent</b>";
-          subtitle = "Coins were used from your wallet.";
-          emoji = "💸";
-        }
-
+          const adminName = req.user?.fullName || "Admin";
+        const sign = amt > 0 ? "+" : "";
         const msg =
-          `${title}
+          `<b>Wallet Adjustment</b>\n` +
+          `User: <b>${escapeHtml(user.fullName || "Unknown")}</b>${user.phone ? ` (${escapeHtml(user.phone)})` : ""}\n` +
+          `Before: ${before.toFixed(2)} ETB\n` +
+          `After: <b>${Number(user.wallet || 0).toFixed(2)} ETB</b>\n` +
+          `Source: ${escapeHtml(source || "manual")}\n` +
+          (reason ? `Reason: ${escapeHtml(reason)}\n` : "") +
+          `Updated by: ${escapeHtml(adminName)}\n` +
+          `Date: ${escapeHtml(new Date().toLocaleString())}`;
 
-Hey <b>${escapeHtml(user.fullName || "Player")}</b>!
-
-${emoji} <b>Change</b>
-<code>${sign}${absAmt.toFixed(2)} coins</code>
-
-💰 <b>Wallet Balance</b>
-<code>${user.wallet.toFixed(2)} coins</code>
-
-${reason ? `📝 <b>Reason</b>\n${escapeHtml(reason)}\n\n` : ""}
-
-👑 <b>Processed by</b>: ${escapeHtml(adminName)}
-
-━━━━━━━━━━━━━━
-${isBoost
-            ? "🚀 <i>Jump back in and try your luck!</i>"
-            : "🎯 <i>Win some rounds and refill your coins!</i>"
-          }`;
-
-        await NotifyUserTelegram(user.telegramId, msg);
+        if (user.telegramId && user.role !== "robot" && !user.telegramId.startsWith("web_")) {
+          await NotifyUserTelegram(user.telegramId, msg);
+        }
       }
     } catch (e) {
       logger.error("Failed to notify user via Telegram after wallet adjustment", {
@@ -304,119 +270,12 @@ ${isBoost
       });
     }
 
-    // Emit real-time wallet update via Socket.IO
     if (req.io) {
       req.io.to(user._id.toString()).emit("walletUpdate", { wallet: user.wallet, bonus: user.bonus });
     }
 
     res.json({ message: "Wallet updated", wallet: user.wallet });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/* update user bonus*/
-exports.updateBonus = async (req, res) => {
-  try {
-    const { amount, reason = "", source = "manual" } = req.body;
-    const userId = req.params.id;
-
-    const amt = Number(amount);
-    if (!Number.isFinite(amt) || amt === 0) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    const before = Number(user.bonus || 0);
-    const after = before + amt;
-    if (after < 0) {
-      return res
-        .status(400)
-        .json({ message: "Insufficient bonus balance for this adjustment" });
-    }
-    user.bonus = after;
-
-    await user.save();
-    createWalletLog({
-      targetUser: user._id,
-      performedBy: req.user?._id,
-      amount: amt,
-      balanceBefore: before,
-      balanceAfter: user.bonus,
-      balanceType: "bonus",
-      reason,
-      source,
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-    });
-
-    // Notify user on Telegram
-    try {
-      if (user.telegramId) {
-        const escapeHtml = (s = "") =>
-          String(s)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-
-        const adminName = req.user?.fullName || "Admin";
-        const isReward = amt > 0;
-        const sign = amt > 0 ? "+" : "-";
-        const absAmt = Math.abs(amt);
-
-        let title;
-        let emoji;
-        let footer;
-
-        if (isReward) {
-          title = "🎁 <b>Bonus Unlocked!</b>";
-          emoji = "🎉";
-          footer = "🔥 <i>Turn your bonus into a big win!</i>";
-        } else {
-          title = "⚠️ <b>Bonus Adjusted</b>";
-          emoji = "🎯";
-          footer = "🎮 <i>Keep playing to earn more bonuses!</i>";
-        }
-
-        const msg =
-          `${title}
-
-Hey <b>${escapeHtml(user.fullName || "Player")}</b>!
-
-${emoji} <b>Bonus Change</b>
-<code>${sign}${absAmt.toFixed(2)} coins</code>
-
-🎁 <b>Total Bonus</b>
-<code>${user.bonus.toFixed(2)} coins</code>
-
-${reason ? `📝 <b>Reason</b>\n${escapeHtml(reason)}\n\n` : ""}
-
-👑 <b>Sent by</b>: ${escapeHtml(adminName)}
-
-━━━━━━━━━━━━━━
-${footer}`;
-
-        await NotifyUserTelegram(user.telegramId, msg);
-      }
-    } catch (e) {
-      logger.error("Failed to notify user via Telegram after bonus adjustment", {
-        userId: String(user._id),
-        telegramId: user.telegramId,
-        error: e?.message,
-      });
-    }
-
-    // Emit real-time wallet update via Socket.IO
-    if (req.io) {
-      req.io.to(user._id.toString()).emit("walletUpdate", { wallet: user.wallet, bonus: user.bonus });
-    }
-
-    res.json({ message: "Bonus updated", bonus: user.bonus });
-  } catch (error) {
-    logger.error("updateBonus error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -525,7 +384,7 @@ exports.getUserByTelegramId = async (req, res) => {
 exports.WalletBalanceTelegramId = async (req, res) => {
   try {
     const user = await User.findOne({ telegramId: req.params.telegramId }).select(
-      "fullName phone wallet bonus telegramId country"
+      "fullName phone wallet bonus telegramId"
     );
     if (!user) return res.status(404).json({ message: "User not found" });
     res.status(200).json({
@@ -534,7 +393,6 @@ exports.WalletBalanceTelegramId = async (req, res) => {
       phone: user.phone,
       wallet: user.wallet,
       bonus: user.bonus,
-      country: user.country || "ET",
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
@@ -708,9 +566,9 @@ exports.getAgentEarnings = async (req, res) => {
 // Admin: Get all agents, their referred users, and total games played by those users
 exports.getAllAgentsWithStats = async (req, res) => {
   try {
-    // Only allow admin/manager
-    if (!req.user || !["admin", "manager"].includes(req.user.role)) {
-      return res.status(403).json({ message: "Admin/Manager access required" });
+    // Only allow admin
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
     }
     // Find all agents
     const agents = await User.find({ role: "agent" }).select(
@@ -831,7 +689,7 @@ exports.updateUserRole = async (req, res) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
-    const allowedRoles = ["user", "agent", "admin", "game_manager", "finance", "secretary", "manager", "guest"];
+    const allowedRoles = ["user", "agent", "admin"];
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }

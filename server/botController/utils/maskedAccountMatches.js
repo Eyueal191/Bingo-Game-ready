@@ -1,28 +1,61 @@
+function normalizePhone(phone) {
+  if (!phone) return "";
+
+  let digits = phone.toString().replace(/\D/g, "");
+
+  // Remove Ethiopia country code
+  if (digits.startsWith("251")) {
+    digits = digits.slice(3);
+  }
+
+  // Remove leading 0
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+
+  return digits;
+}
+
 function maskedAccountMatches(masked, known) {
   if (!masked || !known) return false;
 
-  const knownDigits = known.replace(/\D/g, "");
-  const maskedDigits = masked.replace(/\D/g, "");
+  // Normalize known number
+  const normalizedKnown = normalizePhone(known);
 
-  const knownLocal = knownDigits.startsWith("2519")
-    ? knownDigits.slice(3) // remove 251
-    : knownDigits;
+  // Match masked pattern like:
+  // 2519****9529
+  // 09****9529
+  // 9****9529
+  const match = masked.match(/^(\d+)\*+(\d+)$/);
 
-  // Case 1: Starts with 2519****XXXX
-  if (maskedDigits.startsWith("2519")) {
-    const prefix = knownDigits.slice(0, 4); // 2519
-    const suffix = knownDigits.slice(-4);  // 9398
-    return maskedDigits.startsWith(prefix) && maskedDigits.endsWith(suffix);
+  if (!match) {
+    console.log("Masked format invalid:", masked);
+    return false;
   }
 
-  // Case 2: Local format like 9149****8
-  if (maskedDigits.startsWith("9")) {
-    const prefix = knownLocal.slice(0, 4); // 9149
-    const suffix = knownLocal.slice(-1);   // 8 (last digit)
-    return maskedDigits.startsWith(prefix) && maskedDigits.endsWith(suffix);
-  }
+  let prefix = match[1];
+  let suffix = match[2];
 
-  return false;
+  // Normalize prefix too
+  prefix = normalizePhone(prefix);
+
+  console.log({
+    masked,
+    known,
+    normalizedKnown,
+    prefix,
+    suffix,
+    starts: normalizedKnown.startsWith(prefix),
+    ends: normalizedKnown.endsWith(suffix),
+  });
+
+  return (
+    normalizedKnown.startsWith(prefix) &&
+    normalizedKnown.endsWith(suffix)
+  );
 }
 
-module.exports = { maskedAccountMatches };
+module.exports = {
+  normalizePhone,
+  maskedAccountMatches,
+};

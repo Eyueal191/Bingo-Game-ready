@@ -1,8 +1,6 @@
-const CountryModel = require("../models/Country");
 const Receipt = require('../models/Receipt');
 const User = require('../models/userModels');
-const DepositRequest = require('../models/DepositRequest');
-const { Transaction, TransactionType, TransactionStatus } = require('../models/Transaction');
+const Transaction = require('../models/ManualTransaction');
 const Reservation = require('../models/reservationModel');
 const { NotifyUserTelegram } = require('../botController/notification');
 const mongoose = require('mongoose');
@@ -18,8 +16,8 @@ const {
   hasCompletedDepositBefore,
 } = require("../services/referralBonusService");
 const logger = require("../utils/winstonLogger");
-const fs = require("fs");
-const path = require("path");
+  const fs = require("fs");
+  const path = require("path");
 
 exports.submitReceipt = async (req, res) => {
   try {
@@ -31,12 +29,9 @@ exports.submitReceipt = async (req, res) => {
 
     const receiptFilePath = req.file.path;
 
-    const { amount, paymentMethod } = req.body;
     const receipt = new Receipt({
       userId: req.user._id,
       fileUrl: receiptFilePath,
-      amount: amount ? Number(amount) : undefined,
-      paymentMethod: paymentMethod || undefined,
     });
 
     await receipt.save();
@@ -63,13 +58,9 @@ exports.submitReceiptTelegram = async (req, res) => {
     }
     const receiptFilePath = req.file.path;
 
-    const { amount, paymentMethod } = req.body;
-
     const receipt = new Receipt({
       userId: user._id,
       fileUrl: receiptFilePath,
-      amount: amount ? Number(amount) : undefined,
-      paymentMethod: paymentMethod || undefined,
     });
 
     await receipt.save();
@@ -171,8 +162,6 @@ exports.getReceipts = async (req, res) => {
         fileUrl: 1,
         status: 1,
         submittedAt: 1,
-        amount: 1,
-        paymentMethod: 1,
       },
     });
 
@@ -256,7 +245,7 @@ exports.deleteReceipt = async (req, res) => {
 };
 
 exports.depositToWallet = async (req, res) => {
-  const { userId, telegramId, amount, receiptId, transactionId } = req.body;
+  const { telegramId, amount, receiptId, transactionId } = req.body;
 
   const parsedAmount = Number(amount);
 
@@ -268,21 +257,15 @@ exports.depositToWallet = async (req, res) => {
       .status(400)
       .json({ message: 'Invalid amount (amount should number >= 0)' });
   }
-  if (!userId && !telegramId) {
-    return res.status(400).json({ message: 'User identifier (userId or telegramId) is required' });
+  if (!telegramId) {
+    return res.status(400).json({ message: 'Invalid telegramId' });
   }
   if (!transactionId) {
     return res.status(400).json({ message: 'Invalid transactionId' });
   }
 
   try {
-    let user;
-    if (userId) {
-      user = await User.findById(userId);
-    } else {
-      user = await User.findOne({ telegramId });
-    }
-
+    const user = await User.findOne({ telegramId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     // Needed for referral bonus: determine if this is the user's first completed deposit
@@ -306,25 +289,13 @@ exports.depositToWallet = async (req, res) => {
       });
     }
 
-    // Get exchange rate for persistent metadata and notifications
-    const userCountry = await CountryModel.findOne({ code: user.country || "ET" });
-    const exchangeRate = userCountry ? userCountry.exchangeRate : 1;
-    const currency = userCountry ? userCountry.currencyCode : "ETB";
-    const localAmountValue = parsedAmount * exchangeRate;
-    const localAmountStr = localAmountValue.toFixed(2);
-
-    const depositRequest = new DepositRequest({
+    const transaction = new Transaction({
       userId: user._id,
       type: 'deposit',
       amount: parsedAmount,
       description: 'Admin deposit from receipt',
       receiptId,
       transactionId,
-      localAmount: localAmountValue,
-      localCurrency: currency,
-      exchangeRate: exchangeRate,
-      status: 'approved',
-      paymentMethod: String(receipt.paymentMethod || "Unknown").trim(),
     });
     const { depositBonus } = await getAppSettings();
     const { bonusAmount, creditedAmount, percentApplied } = computeDepositBonus(
@@ -332,63 +303,22 @@ exports.depositToWallet = async (req, res) => {
       depositBonus
     );
 
-    const localBonusStr = bonusAmount > 0 ? (bonusAmount * exchangeRate).toFixed(2) : "0";
-
-    depositRequest.creditedAmount = creditedAmount;
-    depositRequest.bonusAmount = bonusAmount;
-    depositRequest.bonusPercent = percentApplied;
-
-    const ledgerTx = new Transaction({
-      userId: user._id,
-      type: TransactionType.DEPOSIT,
-      source: "manual",
-      amount: parsedAmount,
-      creditedAmount,
-      bonusAmount,
-      bonusPercent: percentApplied,
-      status: TransactionStatus.COMPLETED,
-      receiptId,
-      transactionId,
-      paymentMethod: String(receipt.paymentMethod || "Unknown").trim(),
-      localAmount: localAmountValue,
-      localCurrency: currency,
-      exchangeRate: exchangeRate,
-      description: 'Admin deposit from receipt',
-    });
-
-    // ATOMIC: Use $inc to prevent race conditions with concurrent game deductions.
-    // Wrap in a MongoDB session for transactional safety.
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      const incUpdate = { wallet: parsedAmount };
-      if (bonusAmount > 0) {
-        incUpdate.bonus = bonusAmount;
-      }
-      const updatedUser = await User.findByIdAndUpdate(
-        user._id,
-        { $inc: incUpdate },
-        { new: true, session }
-      );
-
-      receipt.status = 'approved';
-      await Promise.all([
-        depositRequest.save({ session }),
-        ledgerTx.save({ session }),
-        receipt.save({ session }),
-      ]);
-
-      await session.commitTransaction();
-      session.endSession();
-
-      // Use the atomically updated values for Socket.IO and notifications
-      user.wallet = updatedUser.wallet;
-      user.bonus = updatedUser.bonus;
-    } catch (sessionError) {
-      await session.abortTransaction();
-      session.endSession();
-      throw sessionError;
+    transaction.creditedAmount = creditedAmount;
+    transaction.bonusAmount = bonusAmount;
+    transaction.bonusPercent = percentApplied;
+    // Base deposit amount goes to wallet (real money)
+    user.wallet = (Number(user.wallet) || 0) + parsedAmount;
+    // Deposit bonus goes to bonus (play-only balance)
+    if (bonusAmount > 0) {
+      user.bonus = (Number(user.bonus) || 0) + bonusAmount;
     }
+
+    receipt.status = 'approved';
+    await Promise.all([
+      user.save(),
+      transaction.save(),
+      receipt.save(),
+    ]);
 
     // Award referral bonus (first-deposit based, settings-driven)
     const referralResult = await awardReferralBonusForFirstDeposit(user, {
@@ -406,14 +336,14 @@ exports.depositToWallet = async (req, res) => {
         .emit('walletUpdate', { wallet: referralResult.inviter.wallet, bonus: referralResult.inviter.bonus });
     }
 
-    const bonusText = bonusAmount > 0 ? ` (+${bonusAmount} coins bonus / ${localBonusStr} ${currency})` : "";
-    const userMessage = `Your deposit of ${parsedAmount} coins (${localAmountStr} ${currency})${bonusText} has been approved! New wallet balance: ${user.wallet} coins`;
-    if (user.telegramId) {
-      await NotifyUserTelegram(user.telegramId, userMessage);
+    if (telegramId && user.role !== "robot" && !telegramId.startsWith("web_")) {
+      const bonusText = bonusAmount > 0 ? ` (+${bonusAmount} ETB bonus)` : "";
+      const userMessage = `Your deposit of ${parsedAmount}${bonusText} has been approved! New wallet balance: ${user.wallet}`;
+      await NotifyUserTelegram(telegramId, userMessage);
     }
     res
       .status(200)
-      .json({ message: 'Deposit successful', wallet: user.wallet, bonus: user.bonus });
+      .json({ message: 'Deposit successful', wallet: user.wallet });
   } catch (error) {
     logger.error('manualPaymentController: deposit error', { err: error });
     res.status(500).json({ message: 'Failed to deposit amount' });
@@ -464,7 +394,7 @@ exports.getReferralData = async (req, res) => {
       const isActivePeriod = isWithin30Days(userJoinedDate);
 
       // Get the first deposit transaction for this user
-      const firstDeposit = await DepositRequest.findOne({
+      const firstDeposit = await Transaction.findOne({
         userId: invitedUser._id,
         type: 'deposit',
       }).sort({ date: 1 }); // Oldest deposit first
@@ -544,6 +474,7 @@ exports.getAdminTransactions = async (req, res) => {
 
     const allowedSources = ["manual", "sms", "admin", "system"];
     const allowedTypes = ["deposit", "transfer", "withdrawal", "bonus", "referral_bonus"];
+    const allowedMethods = ["CBE", "Telebirr", "Abyssinia", "CBEBirr", "Dashen"];
     const allowedSortFields = {
       createdAt: "createdAt",
       amount: "amount",
@@ -571,6 +502,9 @@ exports.getAdminTransactions = async (req, res) => {
 
     if (source && !allowedSources.includes(String(source))) {
       return res.status(400).json({ message: "Invalid source" });
+    }
+    if (paymentMethod && !allowedMethods.includes(String(paymentMethod))) {
+      return res.status(400).json({ message: "Invalid payment method" });
     }
 
     const requestedType = type ? String(type).toLowerCase() : "";
@@ -657,21 +591,21 @@ exports.getAdminTransactions = async (req, res) => {
       },
       ...(requestedType
         ? [
-          {
-            $match: {
-              typeNorm: requestedType,
+            {
+              $match: {
+                typeNorm: requestedType,
+              },
             },
-          },
-        ]
+          ]
         : []),
       ...(requestedStatus
         ? [
-          {
-            $match: {
-              statusNorm: requestedStatus,
+            {
+              $match: {
+                statusNorm: requestedStatus,
+              },
             },
-          },
-        ]
+          ]
         : []),
       {
         $lookup: {
@@ -689,56 +623,56 @@ exports.getAdminTransactions = async (req, res) => {
       },
       ...(regex
         ? [
-          {
-            $match: {
-              $or: [
-                { $expr: { $regexMatch: { input: "$transactionId", regex } } },
-                {
-                  $expr: {
-                    $regexMatch: {
-                      input: { $toString: { $ifNull: ["$description", ""] } },
-                      regex,
+            {
+              $match: {
+                $or: [
+                  { $expr: { $regexMatch: { input: "$transactionId", regex } } },
+                  {
+                    $expr: {
+                      $regexMatch: {
+                        input: { $toString: { $ifNull: ["$description", ""] } },
+                        regex,
+                      },
                     },
                   },
-                },
-                { $expr: { $regexMatch: { input: "$paymentMethod", regex } } },
-                {
-                  $expr: {
-                    $regexMatch: {
-                      input: { $toString: { $ifNull: ["$user.fullName", ""] } },
-                      regex,
+                  { $expr: { $regexMatch: { input: "$paymentMethod", regex } } },
+                  {
+                    $expr: {
+                      $regexMatch: {
+                        input: { $toString: { $ifNull: ["$user.fullName", ""] } },
+                        regex,
+                      },
                     },
                   },
-                },
-                {
-                  $expr: {
-                    $regexMatch: {
-                      input: { $toString: { $ifNull: ["$user.telegramId", ""] } },
-                      regex,
+                  {
+                    $expr: {
+                      $regexMatch: {
+                        input: { $toString: { $ifNull: ["$user.telegramId", ""] } },
+                        regex,
+                      },
                     },
                   },
-                },
-                { $expr: { $regexMatch: { input: "$userPhoneStr", regex } } },
-                {
-                  $expr: {
-                    $regexMatch: {
-                      input: { $toString: { $ifNull: ["$user.invitedBy", ""] } },
-                      regex,
+                  { $expr: { $regexMatch: { input: "$userPhoneStr", regex } } },
+                  {
+                    $expr: {
+                      $regexMatch: {
+                        input: { $toString: { $ifNull: ["$user.invitedBy", ""] } },
+                        regex,
+                      },
                     },
                   },
-                },
-                {
-                  $expr: {
-                    $regexMatch: {
-                      input: { $toString: { $ifNull: ["$user.referralCode", ""] } },
-                      regex,
+                  {
+                    $expr: {
+                      $regexMatch: {
+                        input: { $toString: { $ifNull: ["$user.referralCode", ""] } },
+                        regex,
+                      },
                     },
                   },
-                },
-              ],
+                ],
+              },
             },
-          },
-        ]
+          ]
         : []),
       {
         $facet: {
@@ -772,9 +706,6 @@ exports.getAdminTransactions = async (req, res) => {
                 creditedAmount: { $ifNull: ["$creditedAmount", 0] },
                 bonusAmount: { $ifNull: ["$bonusAmount", 0] },
                 bonusPercent: { $ifNull: ["$bonusPercent", 0] },
-                localAmount: { $ifNull: ["$localAmount", 0] },
-                localCurrency: { $ifNull: ["$localCurrency", ""] },
-                exchangeRate: { $ifNull: ["$exchangeRate", 1] },
                 paymentMethod: { $ifNull: ["$paymentMethod", "—"] },
                 reference: { $ifNull: ["$transactionId", "—"] },
                 description: { $ifNull: ["$description", "—"] },
@@ -805,7 +736,7 @@ exports.getAdminTransactions = async (req, res) => {
       },
     ];
 
-    const [result] = await DepositRequest.aggregate(pipeline).allowDiskUse(true);
+    const [result] = await Transaction.aggregate(pipeline).allowDiskUse(true);
     const rows = result?.data || [];
     const totalCount = result?.total?.[0]?.count || 0;
     const totalPages = Math.ceil(totalCount / limitNum);

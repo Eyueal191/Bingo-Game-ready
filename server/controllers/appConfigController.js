@@ -23,17 +23,18 @@ const normalizeDepositBonus = (value) => {
   return { enabled, percent };
 };
 
+// Helper: shallow merge only allowed top-level keys to prevent arbitrary injection
 const ALLOWED_TOP_LEVEL = new Set([
   "depositBonus",
   "promoBanner",
+  "botPayments",
   "robotEnabledGlobal",
   "identity",
   "branding",
   "bot",
   "walletRules",
   "leaderboard",
-  "bingo",
-  "ludo",
+  "paymentAccounts",
 ]);
 
 exports.getAppConfig = async (req, res) => {
@@ -50,7 +51,6 @@ exports.updateAppConfig = async (req, res) => {
   try {
     const cfg = await AppConfig.getConfig();
     const payload = req.body || {};
-    logger.info("updateAppConfig payload:", { payload, keys: Object.keys(payload) });
     let changed = false;
 
     for (const key of Object.keys(payload)) {
@@ -151,12 +151,12 @@ exports.uploadBrandingAssets = (req, res) =>
       cfg.audit.updatedAt = new Date();
       cfg.audit.updatedBy = req.user?._id || cfg.audit.updatedBy;
       cfg.audit.version = (cfg.audit.version || 0) + 1;
-      await cfg.save();
-      invalidateAppSettingsCache();
+        await cfg.save();
+        invalidateAppSettingsCache();
 
-      const brandingPayload = cfg.branding?.toObject?.() || cfg.branding;
+        const brandingPayload = cfg.branding?.toObject?.() || cfg.branding;
 
-      res.json({ branding: brandingPayload, files: updates });
+        res.json({ branding: brandingPayload, files: updates });
     } catch (uploadErr) {
       logger.error("uploadBrandingAssets failed", { error: uploadErr.message });
       res.status(500).json({ error: "Failed to save branding assets" });

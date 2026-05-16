@@ -1,10 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { getGameHistory, getLeaderboard, getAdminLeaderboard, getMyGameHistory, getRecentWinners } = require("../controllers/gameHistoryController");
-const { authenticate, isAdmin, isManager } = require("../middlewares/auth");
+const  {getGameHistory, getLeaderboard, getAdminLeaderboard, getMyGameHistory} = require("../controllers/gameHistoryController");
+const { authenticate,isAdmin } = require("../middlewares/auth");
 const asyncHandler = require("../utils/asyncHandler");
 
-router.get("/recent-winners", asyncHandler(getRecentWinners));
 router.get("/mine", authenticate, asyncHandler(getGameHistory));
 router.get(
 	"/leaderboard",
@@ -15,7 +14,7 @@ router.get(
 router.get(
 	"/leaderboard/admin",
 	authenticate,
-	isManager,
+	isAdmin,
 	asyncHandler(getAdminLeaderboard)
 );
 router.get("/history/:userId", asyncHandler(getMyGameHistory));

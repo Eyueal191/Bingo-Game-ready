@@ -1,7 +1,7 @@
 const Reservation = require("../models/reservationModel");
 const User = require("../models/userModels");
 const GameRoom = require("../models/gameRoom");
-const { GameTransaction, GameTransactionType, UserType } = require("../models/GameTransaction");
+
 const leaderboardService = require("../services/leaderboardService");
 const { getAppSettings } = require("../services/appSettingsService");
 
@@ -362,66 +362,5 @@ exports.getAdminLeaderboard = async (req, res) => {
     res
       .status(500)
       .json({ message: "Server error while fetching admin leaderboard" });
-  }
-};
-
-exports.getRecentWinners = async (req, res) => {
-  try {
-
-    // Fetch top 100 winning sums by real users
-    const recentWins = await GameTransaction.aggregate([
-      {
-        $match: {
-          type: GameTransactionType.WIN,
-          userType: UserType.USER
-        }
-      },
-      {
-        $group: {
-          _id: "$userId",
-          totalAmount: { $sum: "$amount" },
-          lastWinAt: { $max: "$createdAt" },
-          lastGameType: { $last: "$gameType" }
-        }
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "_id",
-          foreignField: "_id",
-          as: "userDetails"
-        }
-      },
-      { $unwind: "$userDetails" },
-      { $sort: { totalAmount: -1 } },
-      { $limit: 100 },
-      {
-        $project: {
-          id: "$_id",
-          amount: "$totalAmount",
-          gameType: "$lastGameType",
-          date: "$lastWinAt",
-          fullName: "$userDetails.fullName",
-          phone: "$userDetails.phone"
-        }
-      }
-    ]);
-
-    const winners = recentWins.map(tx => ({
-      id: tx.id,
-      amount: tx.amount,
-      gameType: tx.gameType,
-      date: tx.date,
-      maskedPhone: leaderboardService.maskPhone(tx.phone),
-      displayName: leaderboardService.formatDisplayName(tx.fullName, tx.phone),
-    }));
-
-    res.status(200).json({
-      success: true,
-      winners,
-    });
-  } catch (error) {
-    console.error("Error fetching recent winners:", error);
-    res.status(500).json({ success: false, message: "Server error while fetching recent winners" });
   }
 };

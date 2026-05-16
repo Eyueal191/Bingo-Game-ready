@@ -1,34 +1,25 @@
-// gameRoomService.js
-const GameRoom = require('../models/gameRoom');
+class GameRoomService {
+  constructor(GameRoomModel) {
+    this.GameRoom = GameRoomModel;
+  }
 
-async function getGameRoomById(roomId) {
-  return GameRoom.findById(roomId);
+  async getGameRoomById(roomId) {
+    return this.GameRoom.findById(roomId);
+  }
+
+  async getActiveRoomsByStake(stakeAmount) {
+    return this.GameRoom.find({
+      stakeAmount: parseFloat(stakeAmount),
+      status: { $in: ["waiting", "starting", "playing"] },
+    });
+  }
+
+  async createGameRoom(data) {
+    const room = new this.GameRoom(data);
+    return room.save();
+  }
+
+  // Add more methods as needed for update, delete, etc.
 }
 
-async function getActiveRoomsByStake(stakeAmount) {
-  return GameRoom.find({
-    stakeAmount: parseFloat(stakeAmount),
-    status: { $in: ["waiting", "starting", "playing"] },
-  });
-}
-
-async function createGameRoom(data) {
-  const room = new GameRoom(data);
-  return room.save();
-}
-
-async function updateRoomStatus(roomId, status) {
-  return GameRoom.findByIdAndUpdate(roomId, { status }, { new: true });
-}
-
-async function deleteGameRoom(roomId) {
-  return GameRoom.findByIdAndDelete(roomId);
-}
-
-module.exports = {
-  getGameRoomById,
-  getActiveRoomsByStake,
-  createGameRoom,
-  updateRoomStatus,
-  deleteGameRoom,
-};
+module.exports = GameRoomService; 

@@ -1,7 +1,7 @@
 const { GameTransaction, GameType, UserType, GameTransactionType } = require("../models/GameTransaction");
 const GameRoom = require("../models/gameRoom");
 const { Transaction } = require("../models/Transaction");
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 const User = require("../models/userModels");
 const logger = require("../utils/winstonLogger");
 
@@ -385,12 +385,12 @@ const getRevenueBreakdown = async (req, res) => {
 
                 // Final interpretation
                 interpretation: {
-                    gameProfit: `House earned ${grossGameProfit} coins from games (stakes - payouts)`,
-                    bonusImpact: `Paid out ${totalBonuses} coins in bonuses (registration + referral + deposit)`,
+                    gameProfit: `House earned ${grossGameProfit} ETB from games (stakes - payouts)`,
+                    bonusImpact: `Paid out ${totalBonuses} ETB in bonuses (registration + referral + deposit)`,
                     robotContribution:
                         breakdown.stakes.robot - breakdown.wins.robot > 0
-                            ? `Robots contributed ${breakdown.stakes.robot - breakdown.wins.robot} coins to house`
-                            : `Robots took ${Math.abs(breakdown.stakes.robot - breakdown.wins.robot)} coins from house`,
+                            ? `Robots contributed ${breakdown.stakes.robot - breakdown.wins.robot} ETB to house`
+                            : `Robots took ${Math.abs(breakdown.stakes.robot - breakdown.wins.robot)} ETB from house`,
                 },
             },
         });

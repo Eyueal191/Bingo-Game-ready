@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticate, isFinance } = require("../middlewares/auth");
+const { authenticate, isAdmin } = require("../middlewares/auth");
 
 const {
     getRevenueBreakdown,
@@ -9,8 +9,8 @@ const {
     getDailyRevenueTrend,
 } = require("../controllers/revenueController");
 
-// All routes require finance access
-router.use(authenticate, isFinance);
+// All routes require admin access
+router.use(authenticate, isAdmin);
 
 // GET /api/v1/revenue/breakdown - Get comprehensive revenue breakdown
 router.get("/breakdown", getRevenueBreakdown);

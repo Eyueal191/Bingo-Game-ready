@@ -1,7 +1,7 @@
 const Game = require("../models/game");
 const GameParticipant = require("../models/gameParticipant");
 const { Transaction } = require("../models/Transaction");
-const ManualTransaction = require("../models/DepositRequest");
+const ManualTransaction = require("../models/ManualTransaction");
 const User = require("../models/userModels");
 const logger = require("../utils/winstonLogger");
 

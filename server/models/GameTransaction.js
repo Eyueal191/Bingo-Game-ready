@@ -20,7 +20,6 @@ const GameType = {
     KESHKESH: "keshkesh",
     MATERIAL_LOTTERY: "material_lottery",
     SPIN: "spin",
-    LUDO: "ludo",
 };
 
 const UserType = {

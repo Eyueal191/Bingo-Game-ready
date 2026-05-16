@@ -1,17 +1,14 @@
 require("dotenv").config();
-const AdminSetting = require("../models/adminSetting");
-const { normalizePhone } = require("../utils/phoneUtils");
+const   AdminSetting  =require("../models/adminSetting");
+const { sanitizeAndValidatePhone } = require("../utils/phoneUtils");
 
 
 const User = require("../models/userModels");
 const jwt = require("jsonwebtoken");
 const CONFIG = require("../config/config");
-const ManualTransaction = require("../models/DepositRequest");
-const Reservation = require("../models/reservationModel");
-const WalletLog = require("../models/walletLog");
 const logger = require("../utils/winstonLogger");
 const crypto = require("crypto");
-const { createHmac } = crypto;
+const { NotifyUserTelegram } = require("../botController/notification");
 const {
   registerSchema,
   loginSchema,
@@ -21,8 +18,6 @@ const {
   tokenParamsSchema,
   passwordSchema,
   paramsSchema,
-  guestRegisterSchema,
-  staffRegisterSchema,
 } = require("../lib/schema");
 
 const {
@@ -158,7 +153,6 @@ const telegramAuth = async (req, res) => {
         referralCode: user.referralCode,
         invitedBy: user.invitedBy,
         role: user.role,
-        country: user.country,
       },
     });
   } catch (error) {
@@ -180,79 +174,100 @@ const register = async (req, res) => {
     const isBonusEnabled = settings.isBonusEnabled;
     const bonusAmount = settings.bonusAmount;
 
-    // 🔹 2. Validate phone using multi-country system
-    let { phone } = req.body;
-    const phoneResult = normalizePhone(phone);
-    if (phoneResult.error) return res.status(400).json({ message: phoneResult.error });
-    const normalizedPhone = phoneResult.phone;
+    // 🔹 2. Validate phone
+    let { phone, telegramId } = req.body;
+    
+    // Auto-generate a robust mock telegramId for web users if none provided
+    const resolvedTelegramId = telegramId || `web_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
+
+    const { phone: normalizedPhone, error: phoneError } = sanitizeAndValidatePhone(phone);
+    if (phoneError) return res.status(400).json({ message: phoneError });
 
     // 🔹 3. Validate other registration fields
-    const validatedData = { ...req.body, phone: normalizedPhone }; // Use normalized phone for validation
+    const validatedData = { ...req.body, phone: normalizedPhone, telegramId: resolvedTelegramId }; // Use normalized phone & resolved telegramId
     const { error } = registerSchema.validate(validatedData);
     if (error) {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    const query = { $or: [{ phone: normalizedPhone }] };
-    if (validatedData.telegramId) {
-      query.$or.push({ telegramId: validatedData.telegramId });
-    }
-    if (validatedData.email) {
-      query.$or.push({ email: validatedData.email });
-    }
-
-    const existingUser = await User.findOne(query);
-
+    // 🔹 4. Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [
+        { phone: normalizedPhone },
+        { telegramId: resolvedTelegramId },
+      ],
+    });
+    
     if (existingUser) {
-      if (existingUser.phone === normalizedPhone) {
-        return res
-          .status(400)
-          .json({ message: "User already exists with this phone number" });
+      // Check if we can link a real Telegram ID to a web-registered account
+      const isWebUser = existingUser.telegramId.startsWith("web_");
+      const isNewTelegramUser = !resolvedTelegramId.startsWith("web_");
+
+      if (existingUser.phone === normalizedPhone && isWebUser && isNewTelegramUser) {
+        // Double check that the new telegramId isn't already taken by someone else
+        const otherUserWithTelegramId = await User.findOne({ telegramId: resolvedTelegramId });
+        if (otherUserWithTelegramId && otherUserWithTelegramId._id.toString() !== existingUser._id.toString()) {
+           return res.status(400).json({ message: "User already exists with this Telegram account" });
+        }
+
+        // Link the real Telegram ID to the existing web account
+        existingUser.telegramId = resolvedTelegramId;
+        // Optionally update fullName if it's missing or generic
+        if (validatedData.fullName && (!existingUser.fullName || existingUser.fullName.toLowerCase().includes("web"))) {
+           existingUser.fullName = validatedData.fullName;
+        }
+        await existingUser.save();
+        
+        const token = generateToken(existingUser._id, existingUser.role);
+        return res.status(200).json({
+          message: "Telegram account linked successfully",
+          linked: true,
+          token,
+          user: {
+            _id: existingUser._id,
+            fullName: existingUser.fullName,
+            phone: existingUser.phone,
+            wallet: existingUser.wallet,
+            bonus: existingUser.bonus,
+            referralCode: existingUser.referralCode,
+            invitedBy: existingUser.invitedBy,
+            role: existingUser.role,
+          },
+        });
       }
-      if (
-        validatedData.telegramId &&
-        existingUser.telegramId === validatedData.telegramId
-      ) {
-        return res
-          .status(400)
-          .json({ message: "User already exists with this Telegram account" });
+
+      if (existingUser.phone === normalizedPhone && existingUser.telegramId === resolvedTelegramId) {
+        return res.status(400).json({ message: "User already exists with this phone number and Telegram ID" });
       }
-      if (validatedData.email && existingUser.email === validatedData.email) {
-        return res
-          .status(400)
-          .json({ message: "User already exists with this email" });
+      if (existingUser.telegramId === resolvedTelegramId) {
+        return res.status(400).json({ message: "User already exists with this Telegram account" });
       }
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: "User already exists with this phone number or Telegram ID" });
     }
+
 
     // 🔹 5. Prepare new user data
-    const country = validatedData.country || phoneResult.country;
-    if (!country) {
-      return res.status(400).json({ message: "Unable to detect country from phone number" });
-    }
-
-    const userData = {
-      telegramId: validatedData.telegramId || undefined,
-      email: validatedData.email || undefined,
+   const userData = {
+      telegramId: resolvedTelegramId,
       fullName: validatedData.fullName,
       phone: normalizedPhone,
       referralCode: generateReferralCode(),
       wallet: 0,
       bonus: 0,
       role: "user",
-      country: country,
     };
 
     if (validatedData.password) userData.password = validatedData.password;
     if (validatedData.invitedBy) userData.invitedBy = validatedData.invitedBy;
-    // 🔹 6. Bonus calculation logic
+// 🔹 6. Bonus calculation logic
     let agentThatFunded = null;
+    let inviter = null;
     let shouldRecordUserBonusTx = false;
     let userBonus = 0;
 
     if (isBonusEnabled) {
       if (validatedData.invitedBy) {
-        const inviter = await User.findOne({ referralCode: validatedData.invitedBy });
+        inviter = await User.findOne({ referralCode: validatedData.invitedBy });
 
         if (inviter && inviter.role === "agent") {
           // Agent pays bonus if they have enough balance
@@ -283,6 +298,7 @@ const register = async (req, res) => {
       }
     }
 
+    // Registration bonus goes to bonus only (play-only balance, not withdrawable)
     userData.wallet = 0;
     userData.bonus = userBonus;
 
@@ -307,42 +323,52 @@ const register = async (req, res) => {
         agentThatFunded._id,
         bonusAmount,
         TransactionType.TRANSFER,
-        `Funded ${bonusAmount} coins registration bonus for invited user ${user.fullName || user.phone}`,
+        `Funded ${bonusAmount} ETB registration bonus for invited user ${user.fullName || user.phone}`,
         `agent-funded-registration-bonus-${user._id}-${Date.now()}`,
         TransactionStatus.COMPLETED
       );
     }
 
-    // 🔹 9. If user registered with email, trigger verification
-    let emailVerificationPending = false;
-    if (user.email && !user.isEmailVerified) {
-      emailVerificationPending = true;
-      try {
-        await _sendVerificationEmail(user);
-      } catch (emailError) {
-        logger.warn("Auto email verification failed on register", { err: emailError });
+    // 🔹 9. Emit socket updates and send telegram notifications
+    if (req.io) {
+      // New user update
+      req.io.to(user._id.toString()).emit("walletUpdate", { wallet: user.wallet, bonus: user.bonus });
+      
+      // Inviter update
+      if (inviter && userBonus > 0) {
+        req.io.to(inviter._id.toString()).emit("walletUpdate", { wallet: inviter.wallet, bonus: inviter.bonus });
       }
+    }
+
+    try {
+      if (userBonus > 0 && user.telegramId && !user.telegramId.startsWith("web_")) {
+        await NotifyUserTelegram(user.telegramId, `🎁 Welcome Bonus Received!\nYou have been awarded ${userBonus} ETB registration bonus to your play-only balance. Enjoy!`);
+      }
+      if (inviter && inviter.telegramId && userBonus > 0 && !inviter.telegramId.startsWith("web_") && inviter.role !== "robot") {
+        const inviterMsg = inviter.role === "agent"
+          ? `👥 <b>New User Funded</b>\n` + 
+            `You just funded a registration bonus for ${user.fullName || "a new user"} who registered with your link. -${userBonus} ETB has been deducted from your wallet.`
+          : `👥 <b>Referral Bonus Awarded!</b>\n` +
+            `You earned a referral bonus because ${user.fullName || "a new user"} registered using your link. Check your bonus balance!`;
+        await NotifyUserTelegram(inviter.telegramId, inviterMsg);
+      }
+    } catch (e) {
+      logger.error("Failed to send telegram notifications during registration", { error: e.message });
     }
 
     // 🔹 10. Return successful response
     return res.status(201).json({
-      message: emailVerificationPending
-        ? "User registered. Please check your email to verify your account."
-        : "User registered successfully",
+      message: "User registered successfully",
       token,
-      emailVerificationPending,
       user: {
         _id: user._id,
         fullName: user.fullName,
         phone: user.phone,
-        email: user.email || undefined,
-        isEmailVerified: user.isEmailVerified,
         wallet: user.wallet,
         bonus: user.bonus,
         referralCode: user.referralCode,
         invitedBy: user.invitedBy,
         role: user.role,
-        country: user.country,
       },
     });
 
@@ -359,15 +385,31 @@ const login = async (req, res) => {
   try {
     const { phone: rawPhone, password } = req.body;
 
-    // 🔹 Normalize phone number using multi-country system
-    const phoneResult = normalizePhone(rawPhone);
-    if (phoneResult.error) {
-      return res.status(400).json({
-        message: phoneResult.error,
-      });
+    // 🔹 Normalize phone number to +251 format
+    let normalizedPhone = rawPhone.trim();
+
+    // Remove any spaces or dashes
+    normalizedPhone = normalizedPhone.replace(/[\s-]/g, "");
+
+    // Handle different phone number formats
+    if (normalizedPhone.startsWith("09") || normalizedPhone.startsWith("07")) {
+      // Convert 09... or 07... to +2519... or +2517...
+      normalizedPhone = `+251${normalizedPhone.slice(1)}`;
+    } else if (normalizedPhone.startsWith("251")) {
+      // Convert 2519... to +2519...
+      normalizedPhone = `+${normalizedPhone}`;
+    } else if (!normalizedPhone.startsWith("+251")) {
+      // If it doesn't match expected formats, assume it's a 9-digit number and prepend +251
+      normalizedPhone = `+251${normalizedPhone}`;
     }
 
-    const normalizedPhone = phoneResult.phone;
+    // Ensure the final phone number is in +2519... or +2517... format (10 digits after +251)
+    if (!/^\+251[79]\d{8}$/.test(normalizedPhone)) {
+      return res.status(400).json({
+        message:
+          "Invalid phone number format. Use 09..., 07..., 251..., or +251...",
+      });
+    }
 
     // 🔹 Validate input for login
     const { error } = loginSchema.validate({
@@ -412,7 +454,6 @@ const login = async (req, res) => {
         referralCode: user.referralCode,
         invitedBy: user.invitedBy,
         role: user.role,
-        country: user.country,
       },
     });
   } catch (error) {
@@ -605,13 +646,20 @@ const registerAgent = async (req, res) => {
         .status(400)
         .json({ message: "telegramId and phone are required" });
     }
-
-    // Validate phone using multi-country system
-    const phoneResult = normalizePhone(phone);
-    if (phoneResult.error) {
-      return res.status(400).json({ message: phoneResult.error });
+    // Normalize phone number
+    let normalizedPhone = phone.trim().replace(/\s|-/g, "");
+    if (normalizedPhone.startsWith("09") || normalizedPhone.startsWith("07")) {
+      normalizedPhone = `+251${normalizedPhone.slice(1)}`;
+    } else if (normalizedPhone.startsWith("251")) {
+      normalizedPhone = `+${normalizedPhone}`;
+    } else if (!normalizedPhone.startsWith("+251")) {
+      normalizedPhone = `+251${normalizedPhone}`;
     }
-    const normalizedPhone = phoneResult.phone;
+    if (!/^\+251[79]\d{8}$/.test(normalizedPhone)) {
+      return res
+        .status(400)
+        .json({ message: "Invalid Ethiopian phone format." });
+    }
     // Check for existing user
     const existingUser = await User.findOne({
       $or: [{ phone: normalizedPhone }, { telegramId }],
@@ -643,312 +691,6 @@ const registerAgent = async (req, res) => {
   }
 };
 
-/**
- * Internal helper: Send verification email to a user.
- * Generates token, saves it on the user doc, and sends email if SMTP is configured.
- */
-const _sendVerificationEmail = async (user) => {
-  const verificationToken = crypto.randomBytes(32).toString("hex");
-  user.emailVerificationToken = verificationToken;
-  user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  await user.save();
-
-  try {
-    const nodemailer = require("nodemailer");
-    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        secure: process.env.SMTP_SECURE === "true",
-        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      });
-      const verifyUrl = `${process.env.CLIENT_URL || "http://localhost:5173"}/verify-email?token=${verificationToken}`;
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to: user.email,
-        subject: "Verify your email address",
-        html: `
-          <h2>Email Verification</h2>
-          <p>Click the link below to verify your email:</p>
-          <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:#3f51b5;color:white;text-decoration:none;border-radius:6px;">Verify Email</a>
-          <p>Or copy this link: ${verifyUrl}</p>
-          <p>This link expires in 24 hours.</p>
-        `,
-      });
-      return { success: true, emailSent: true };
-    }
-    return { success: true, emailSent: false, verificationToken };
-  } catch (emailError) {
-    logger.warn("Email sending not configured or failed", { err: emailError });
-    return { success: false, error: emailError.message };
-  }
-};
-
-/**
- * Guest Registration
- * Creates a temporary guest user with restricted access (view-only)
- */
-const registerGuest = async (req, res) => {
-  try {
-    const body = req.body || {};
-    const { error } = guestRegisterSchema.validate(body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-
-    const { fullName } = body;
-    const guestId = `guest_${crypto.randomBytes(6).toString("hex")}`;
-
-    const userData = {
-      fullName: fullName || "Guest Player",
-      role: "guest",
-      isGuest: true,
-      wallet: 0,
-      bonus: 0,
-      referralCode: `GUEST-${guestId}`,
-    };
-
-    const user = await User.create(userData);
-    const token = generateToken(user._id, user.role);
-
-    return res.status(201).json({
-      message: "Guest session started",
-      token,
-      user: {
-        _id: user._id,
-        fullName: user.fullName,
-        role: user.role,
-        wallet: user.wallet,
-        isGuest: true,
-      },
-    });
-  } catch (error) {
-    logger.error("Guest registration failed", { err: error });
-    return res.status(500).json({ message: "Failed to create guest session" });
-  }
-};
-
-/**
- * Admin: Register a staff member (finance, secretary, manager)
- * POST /admin/register-staff
- * Body: { fullName, phone, password, email?, role }
- */
-const registerStaff = async (req, res) => {
-  try {
-    const body = req.body || {};
-    const { error } = staffRegisterSchema.validate(body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-
-    const { fullName, phone, password, email, role } = body;
-
-    // Normalize phone number
-    const phoneResult = normalizePhone(phone);
-    if (phoneResult.error) return res.status(400).json({ message: phoneResult.error });
-    const normalizedPhone = phoneResult.phone;
-
-    // Check for existing user
-    const existingUser = await User.findOne({
-      $or: [
-        { phone: normalizedPhone },
-        ...(email ? [{ email }] : [])
-      ]
-    });
-
-    if (existingUser) {
-      const field = existingUser.phone === normalizedPhone ? "phone number" : "email";
-      return res.status(400).json({
-        message: `A user with this ${field} already exists`,
-      });
-    }
-
-    const userData = {
-      fullName,
-      phone: normalizedPhone,
-      password,
-      role,
-      email: email || undefined,
-      referralCode: generateReferralCode(),
-      wallet: 0,
-      bonus: 0,
-    };
-
-    const user = await User.create(userData);
-
-    return res.status(201).json({
-      message: `${role.charAt(0).toUpperCase() + role.slice(1)} registered successfully`,
-      user: {
-        _id: user._id,
-        fullName: user.fullName,
-        phone: user.phone,
-        role: user.role,
-        email: user.email,
-      },
-    });
-  } catch (error) {
-    logger.error("Staff registration failed", { err: error });
-
-    // Detailed Duplicate Key Error Handling (MongoDB 11000)
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      const value = error.keyValue[field];
-      return res.status(400).json({
-        message: `A user with this ${field} (${value}) already exists`
-      });
-    }
-
-    return res.status(error.status || 500).json({
-      message: error.message || "Failed to register staff member"
-    });
-  }
-};
-
-/**
- * Send email verification
- * POST /send-verification-email (authenticated)
- */
-const sendEmailVerification = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!user.email) {
-      return res.status(400).json({ message: "No email address on this account" });
-    }
-
-    if (user.isEmailVerified) {
-      return res.status(400).json({ message: "Email is already verified" });
-    }
-
-    const result = await _sendVerificationEmail(user);
-
-    if (result.success) {
-      return res.status(200).json({
-        message: result.emailSent
-          ? "Verification email sent. Please check your inbox."
-          : "Email verification token generated. Email sending is not configured.",
-        emailSent: result.emailSent,
-        verificationToken: process.env.NODE_ENV === "development" ? result.verificationToken : undefined,
-      });
-    } else {
-      return res.status(500).json({ message: "Failed to send verification email", error: result.error });
-    }
-  } catch (error) {
-    logger.error("Email verification failed", { err: error });
-    return res.status(500).json({ message: "Failed to send verification email" });
-  }
-};
-
-/**
- * Verify email with token
- * GET /verify-email/:token
- */
-const verifyEmail = async (req, res) => {
-  try {
-    const { token } = req.params;
-
-    if (!token) {
-      return res.status(400).json({ message: "Verification token is required" });
-    }
-
-    const user = await User.findOne({
-      emailVerificationToken: token,
-      emailVerificationExpires: { $gt: new Date() },
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: "Invalid or expired verification token" });
-    }
-
-    user.isEmailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
-    await user.save();
-
-    return res.status(200).json({
-      message: "Email verified successfully",
-      verified: true,
-    });
-  } catch (error) {
-    logger.error("Email verification failed", { err: error });
-    return res.status(500).json({ message: "Failed to verify email" });
-  }
-};
-const getMySummary = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const user = await User.findById(userId)
-      .select("_id fullName phone telegramId wallet bonus createdAt")
-      .lean();
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    const [
-      smsDeposits,
-      manualDeposits,
-      addisDeposits,
-      manualWithdrawals,
-      addisWithdrawals,
-      gameHistory,
-      walletLogs,
-    ] = await Promise.all([
-      ManualTransaction.find({ userId: user._id, source: "sms" })
-        .sort({ createdAt: -1 })
-        .lean(),
-      ManualTransaction.find({ userId: user._id, type: "deposit", source: { $ne: "sms" } })
-        .sort({ createdAt: -1 })
-        .lean(),
-      Transaction.find({ userId: user._id, type: TransactionType.DEPOSIT })
-        .sort({ createdAt: -1 })
-        .lean(),
-      ManualTransaction.find({ userId: user._id, type: "Withdrawal" })
-        .sort({ createdAt: -1 })
-        .lean(),
-      Transaction.find({ userId: user._id, type: TransactionType.WITHDRAWAL })
-        .sort({ createdAt: -1 })
-        .lean(),
-      Reservation.find({ userId: user._id })
-        .populate("roomId", "stakeAmount winAmount status createdAt")
-        .sort({ createdAt: -1 })
-        .lean(),
-      WalletLog.find({ targetUser: user._id })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean(),
-    ]);
-
-    const toAmountSum = (arr) =>
-      (arr || []).reduce((sum, x) => sum + Number(x?.amount || 0), 0);
-
-    const totalAdjustments = (walletLogs || []).reduce((sum, log) => sum + (log.amount || 0), 0);
-
-    const wins = (gameHistory || []).filter((g) => g.gameStatus === "won").length;
-    const losses = (gameHistory || []).filter((g) => g.gameStatus === "lost").length;
-
-    res.json({
-      success: true,
-      stats: {
-        totalDeposit:
-          toAmountSum(smsDeposits) +
-          toAmountSum(manualDeposits) +
-          toAmountSum(addisDeposits),
-        totalWithdraw: toAmountSum(manualWithdrawals) + toAmountSum(addisWithdrawals),
-        totalAdjustments,
-        totalGames: (gameHistory || []).length,
-        wins,
-        losses,
-      },
-    });
-  } catch (error) {
-    logger.error("Error building my summary", { error: error?.message });
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
 module.exports = {
   register,
   login,
@@ -961,12 +703,7 @@ module.exports = {
   forgotPassword,
   telegramAuth,
   registerAgent,
-  registerGuest,
-  registerStaff,
-  sendEmailVerification,
-  verifyEmail,
   // Helpers used by other controllers
   generateReferralCode,
   createTransaction,
-  getMySummary,
 };

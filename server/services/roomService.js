@@ -84,6 +84,7 @@ const getRoomData = async ({ roomId }) => {
         return {
             roomId: room._id,
             stakeAmount: room.stakeAmount,
+            numberOfPlayers: room.numberOfPlayers || 0,
             bonusEnabled,
             bonusAmount,
             bonusDescription,
@@ -103,14 +104,8 @@ const joinRoom = async (io, socket, { roomId, userId }) => {
             throw new Error("Invalid roomId or userId");
         }
 
-        const gameRoom = await GameRoom.findById(roomId);
-        if (!gameRoom) {
-            socket.emit("error", { message: "Game room not found" });
-            socket.emit("room_not_found", { roomId });
-            return;
-        }
-
         socket.join(roomId);
+        socket.join(userId);
         socket.userId = userId;
         logger.info("Socket joined room via service", { socketId: socket.id, roomId, userId });
 
@@ -122,6 +117,11 @@ const joinRoom = async (io, socket, { roomId, userId }) => {
 
         const cardData = await fetchCardStatuses(roomId);
         socket.emit("cards", cardData);
+
+        const gameRoom = await GameRoom.findById(roomId);
+        if (!gameRoom) {
+            throw new Error("Game room not found");
+        }
 
         if (gameRoom.status === "playing") {
             // Get bonus data

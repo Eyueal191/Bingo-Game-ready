@@ -35,7 +35,7 @@ const materialLotterySchema = new mongoose.Schema(
         full_name: { type: String },
         numbers: [{ type: Number }],
         rank: { type: Number },
-        prize: { type: String }, // Can be monetary (e.g., "100 coins") or material (e.g., "Smartphone")
+        prize: { type: String }, // Can be monetary (e.g., "100 ETB") or material (e.g., "Smartphone")
       },
     ],
     rewards: [

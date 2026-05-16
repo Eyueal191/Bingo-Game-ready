@@ -23,22 +23,12 @@ async function startBotRuntime({ connectDb = false } = {}) {
     await connectDB(CONFIG.mongoUri);
   }
 
- if (!CONFIG.botPollingLeaseEnabled) {
-  try {
+  if (!CONFIG.botPollingLeaseEnabled) {
     await startBot();
     botRunning = true;
-    logger.info("Bot runtime started", {
-      transport: "polling",
-      lease: "disabled",
-    });
-  } catch (error) {
-    logger.error("Failed to start bot runtime (no lease mode)", {
-      error: error?.message || String(error),
-    });
-    // DO NOT rethrow
+    logger.info("Bot runtime started", { transport: "polling", lease: "disabled" });
+    return;
   }
-  return;
-}
 
   lease = startBotPollingLease({
     mongoose,
@@ -54,22 +44,15 @@ async function startBotRuntime({ connectDb = false } = {}) {
 
   async function leadershipTick() {
     const isLeader = lease.isLeaderNow();
-   if (isLeader && !botRunning) {
-  try {
-    await startBot();
-    botRunning = true;
-    logger.info("Bot runtime became leader", {
-      transport: "polling",
-      lease: "enabled",
-      instanceId: lease.instanceId,
-    });
-  } catch (error) {
-    logger.error("Failed to start bot runtime", {
-      error: error?.message || String(error),
-    });
-    // DO NOT throw
-  }
-}
+    if (isLeader && !botRunning) {
+      await startBot();
+      botRunning = true;
+      logger.info("Bot runtime became leader", {
+        transport: "polling",
+        lease: "enabled",
+        instanceId: lease.instanceId,
+      });
+    }
 
     if (!isLeader && botRunning) {
       await stopBot();

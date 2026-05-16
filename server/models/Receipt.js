@@ -11,8 +11,6 @@ const receiptSchema = new Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
-    amount: { type: Number },
-    paymentMethod: { type: String },
     submittedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
