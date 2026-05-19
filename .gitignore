@@ -1,40 +1,24 @@
-# dependencies
-node_modules/
-client/node_modules/
-server/node_modules/
-
-# builds
-build/
-dist/
-client/build/
-
-# environment variables
-.env
-.env.*
-client/.env
-client/.env.*
+docker-compose.alt.yml
+logo.png
+server/uploads
 server/.env
-server/.env.*
-
-# logs
-*.log
+server/.env.test
+server/node_modules
+client/node_modules
+client/.env
+client/.env.test
+client/build
+.DS_Store
+.vscode
+client/package-lock.json
+server/package-lock.json
 server/error.log
 server/combined.log
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# editor
-.vscode/
-.idea/
-
-# uploads (optional if generated files)
-server/uploads/
-
-# archives
-*.zip
-
-# misc
-lint_output.txt
+server/.env.prod
+server/pnpm-lock.yaml
+server/pnpm-workspace.yaml
+client/pnpm-lock.yaml
+client/pnpm-workspace.yaml
 gap.md
+lint_output.txt
+*.zip

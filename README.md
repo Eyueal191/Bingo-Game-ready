@@ -449,4 +449,4 @@ For technical questions, refer to the documentation suite above or code comments
 
 **Private** – Abyssinia Software Technology PLC  
 Copyright © 2025-2026 Abyssinia Software Technology PLC. All rights reserved.  
-*INTERNAL DOCUMENTATION – CONFIDENTIAL*# Bingo-Game-ready
+*INTERNAL DOCUMENTATION – CONFIDENTIAL*

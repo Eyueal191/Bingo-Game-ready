@@ -167,26 +167,24 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
     };
 
     const handleGameOver = ({
-      result: gameResult,
-      winners: winnerList,
-      winningCards: winningCardList,
-      prizes: prizeList,
-      drawnNumbers: finalDraws,
-      winningCombos: finalCombos,
-      winningCardGrids: finalGrids,
-      userPrize,
-      userLoss,
-      disqualified,
-      disqualificationReason,
-      disqualifiedCards: finalDisqualifiedCards = [],
-      firstNames: winnerNames,
+      winners: winnerList = [],
+      winningCards: winningCardList = [],
+      prizes: prizeList = [],
+      drawnNumbers: finalDraws = [],
+      winningCombos: finalCombos = [],
+      winningCardGrids: finalGrids = [],
+      firstNames: winnerNames = [],
+      numberOfPlayers: totalCards,
+      winAmount,
     }) => {
       const store = getStore();
-      const wasDisqualified = Boolean(disqualified) || store.isDisqualified;
-      const disqualifiedCardIds = Array.isArray(finalDisqualifiedCards) ? finalDisqualifiedCards : [];
+      const wasDisqualified = store.isDisqualified;
+      const hasCards = store.storedCards && store.storedCards.length > 0;
+      const isWinner = Array.isArray(winnerList) && winnerList.includes(userId);
 
       if (wasDisqualified) {
-        const messageForUser = disqualificationReason || DEFAULT_DISQUALIFICATION_MESSAGE;
+        const messageForUser = store.disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE;
+        const disqualifiedCardIds = Array.isArray(store.disqualifiedCards) ? store.disqualifiedCards : [];
         store.setIsDisqualified(true);
         store.setDisqualificationMessage(messageForUser);
         store.setDisqualifiedCards(disqualifiedCardIds);
@@ -202,20 +200,48 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
         }
       }
 
-      // Use global winner data directly for transparency across all roles (winner/loser/watcher)
-      console.log("handleGameOver payload:", { gameResult, winnerList, winningCardList, finalGrids });
-      store.setFinishedGame(true);
-      store.setResult(wasDisqualified && gameResult !== "Disqualified" ? "Disqualified" : gameResult);
-      store.setWinners(winnerList || []);
-      store.setWinningCards(winningCardList || []);
-      store.setPrizes(prizeList || []);
-      store.setDrawnNumbers(finalDraws || []);
-      store.setWinningCombos(finalCombos || []);
-      store.setWinningCardGrids(finalGrids || []);
-      store.setFirstNames(winnerNames || []);
+      let userPrize = 0;
+      if (isWinner && !wasDisqualified) {
+        winnerList.forEach((wId, idx) => {
+          if (wId === userId) {
+            userPrize += Number(prizeList[idx]) || 0;
+          }
+        });
+      }
 
-      store.setUserPrize(wasDisqualified ? 0 : userPrize || 0);
-      store.setUserLoss(userLoss || 0);
+      let userLoss = 0;
+      if (!isWinner && hasCards) {
+        const cardCount = (store.disqualifiedCards && store.disqualifiedCards.length) || store.storedCards.length || 0;
+        const stakeAmount = Number(store.roomData.stakeAmount) || 0;
+        userLoss = stakeAmount * cardCount;
+      }
+
+      let resultStr = "Lost";
+      if (!hasCards) {
+        resultStr = "Watching";
+      } else if (isWinner) {
+        resultStr = "Won";
+      }
+      if (wasDisqualified) {
+        resultStr = "Disqualified";
+      }
+
+      console.log("handleGameOver client-calculated result:", { resultStr, userPrize, userLoss });
+      store.setFinishedGame(true);
+      store.setResult(resultStr);
+      store.setWinners(winnerList);
+      store.setWinningCards(winningCardList);
+      store.setPrizes(prizeList);
+      store.setDrawnNumbers(finalDraws);
+      store.setWinningCombos(finalCombos);
+      store.setWinningCardGrids(finalGrids);
+      store.setFirstNames(winnerNames);
+
+      if (winAmount !== undefined) store.setWinAmount(winAmount || 0);
+      if (totalCards !== undefined) store.setNumberOfPlayers(totalCards || 0);
+
+      store.setUserPrize(userPrize);
+      store.setUserLoss(userLoss);
 
       store.setLoading(false);
     };
@@ -296,40 +322,6 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
       }
     };
 
-    const handleGameFinished = (payload) => {
-      console.log("handleGameFinished payload:", payload);
-      const {
-        winners: winnerList,
-        winningCards: winningCardList,
-        prizes: prizeList,
-        drawnNumbers: finalDraws,
-        winningCombos: finalCombos,
-        winningCardGrids: finalGrids,
-        firstNames: winnerNames,
-        numberOfPlayers: totalCards,
-        winAmount,
-      } = payload;
-      const store = getStore();
-
-      // Update global game data for everyone (including watchers)
-      if (winnerList && winnerList.length > 0) store.setWinners(winnerList);
-      if (winningCardList && winningCardList.length > 0) store.setWinningCards(winningCardList);
-      if (prizeList && prizeList.length > 0) store.setPrizes(prizeList);
-      if (finalDraws && finalDraws.length > 0) store.setDrawnNumbers(finalDraws);
-      if (finalCombos && finalCombos.length > 0) store.setWinningCombos(finalCombos);
-      if (finalGrids && finalGrids.length > 0) store.setWinningCardGrids(finalGrids);
-      if (winnerNames && winnerNames.length > 0) store.setFirstNames(winnerNames);
-
-      if (winAmount !== undefined) store.setWinAmount(winAmount || 0);
-      if (totalCards !== undefined) store.setNumberOfPlayers(totalCards || 0);
-
-      // Only set finishedGame to true if not already handled by game_over event
-      if (!store.finishedGame) {
-        store.setFinishedGame(true);
-        store.setResult("Watching"); // Default result for spectators
-      }
-    };
-
     const handleGameDetails = (data) => {
       const store = getStore();
       if (typeof data.numberOfPlayers === "number") store.setNumberOfPlayers(data.numberOfPlayers);
@@ -345,8 +337,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
     socket.on("settings", handleSettings);
     socket.on("start_game", handleStartGame);
     socket.on("number_called", handleNumberCalled);
-    socket.on(`game_over_${userId}`, handleGameOver);
-    socket.on("game_finished", handleGameFinished);
+    socket.on("game_over", handleGameOver);
     socket.on("new_room_created", handleNewRoomCreated);
     socket.on("counter", handleCounter);
     socket.on("bingo_invalid", handleBingoInvalid);
@@ -384,8 +375,7 @@ export const useGameSocketEvents = (socket, roomId, userId, disqualificationStor
       socket.off("settings", handleSettings);
       socket.off("start_game", handleStartGame);
       socket.off("number_called", handleNumberCalled);
-      socket.off(`game_over_${userId}`, handleGameOver);
-      socket.off("game_finished", handleGameFinished);
+      socket.off("game_over", handleGameOver);
       socket.off("new_room_created", handleNewRoomCreated);
       socket.off("counter", handleCounter);
       socket.off("bingo_invalid", handleBingoInvalid);

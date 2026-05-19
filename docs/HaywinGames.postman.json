@@ -1,0 +1,569 @@
+{
+  "info": {
+    "_postman_id": "haywin-games-complete",
+    "name": "Haywin Games - API",
+    "description": "Complete Haywin Games API collection with embedded environment variables. Import this single file for all endpoints and environment setup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "3.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roomId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gameId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cardId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "stakeAmount",
+      "value": "10",
+      "type": "string"
+    },
+    {
+      "key": "telegramId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "transactionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "withdrawalId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payoutId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "agentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentMethodId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "countryId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test User\",\n  \"phone\": \"+251911223344\",\n  \"password\": \"Password123\",\n  \"referralCode\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Register Guest",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Guest User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register-guest",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register-guest"]
+            }
+          }
+        },
+        {
+          "name": "Telegram Auth",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"initData\": \"query_id=...&user={...}&hash=...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/telegram",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "telegram"]
+            }
+          }
+        },
+        {
+          "name": "Login (Auto-saves Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const token = json.token || json?.data?.token;",
+                  "  const user = json.user || json?.data?.user;",
+                  "  if (token) pm.collectionVariables.set('token', token);",
+                  "  if (user?._id) pm.collectionVariables.set('userId', user._id);",
+                  "  if (user?.telegramId) pm.collectionVariables.set('telegramId', user.telegramId);",
+                  "} catch (e) { console.log('Error parsing response:', e); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+251911223344\",\n  \"password\": \"Password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Get My Summary",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth/my-summary", "host": ["{{baseUrl}}"], "path": ["auth", "my-summary"] }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Updated Name\",\n  \"language\": \"en\",\n  \"country\": \"ET\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/profile", "host": ["{{baseUrl}}"], "path": ["auth", "profile"] }
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/auth/delete-account", "host": ["{{baseUrl}}"], "path": ["auth", "delete-account"] }
+          }
+        },
+        {
+          "name": "Get Invited Users",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth/invited-users", "host": ["{{baseUrl}}"], "path": ["auth", "invited-users"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"Password123\",\n  \"newPassword\": \"NewPassword456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/change-password", "host": ["{{baseUrl}}"], "path": ["auth", "change-password"] }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["auth", "forgot-password"] }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"NewPassword456\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/reset-password/sample-token", "host": ["{{baseUrl}}"], "path": ["auth", "reset-password", "sample-token"] }
+          }
+        },
+        {
+          "name": "Send Verification Email",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/auth/send-verification-email", "host": ["{{baseUrl}}"], "path": ["auth", "send-verification-email"] }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth/verify-email/sample-token", "host": ["{{baseUrl}}"], "path": ["auth", "verify-email", "sample-token"] }
+          }
+        },
+        {
+          "name": "Register Agent (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Agent User\",\n  \"phone\": \"+251922334455\",\n  \"password\": \"AgentPass123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/admin/register-agent", "host": ["{{baseUrl}}"], "path": ["auth", "admin", "register-agent"] }
+          }
+        },
+        {
+          "name": "Register Staff (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Staff User\",\n  \"phone\": \"+251933445566\",\n  \"password\": \"StaffPass123\",\n  \"role\": \"finance\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/admin/register-staff", "host": ["{{baseUrl}}"], "path": ["auth", "admin", "register-staff"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        { "name": "Get All Users (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/users/all", "host": ["{{baseUrl}}"], "path": ["users", "all"] } } },
+        { "name": "Get User By ID", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] } } },
+        { "name": "Get User By Telegram ID", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/users/by-telegram-id/{{telegramId}}", "host": ["{{baseUrl}}"], "path": ["users", "by-telegram-id", "{{telegramId}}"] } } },
+        { "name": "Get Balance By Telegram ID", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/users/balance/{{telegramId}}", "host": ["{{baseUrl}}"], "path": ["users", "balance", "{{telegramId}}"] } } },
+        { "name": "Get Users By Invite Code", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/users/invited/REFCODE", "host": ["{{baseUrl}}"], "path": ["users", "invited", "REFCODE"] } } },
+        { "name": "Get Agents With Stats", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/users/admin/agents-with-stats", "host": ["{{baseUrl}}"], "path": ["users", "admin", "agents-with-stats"] } } },
+        { "name": "Get User Summary", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/users/{{userId}}/summary", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "summary"] } } },
+        { "name": "Update User Wallet (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"amount\": 100,\n  \"operation\": \"add\",\n  \"reason\": \"Manual adjustment\"\n}" }, "url": { "raw": "{{baseUrl}}/users/{{userId}}/wallet", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "wallet"] } } },
+        { "name": "Update User Bonus (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"amount\": 50,\n  \"operation\": \"add\"\n}" }, "url": { "raw": "{{baseUrl}}/users/{{userId}}/bonus", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "bonus"] } } },
+        { "name": "Update User Role (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"role\": \"agent\"\n}" }, "url": { "raw": "{{baseUrl}}/users/{{userId}}/role", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "role"] } } },
+        { "name": "Ban User (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Policy violation\"\n}" }, "url": { "raw": "{{baseUrl}}/users/{{userId}}/ban", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "ban"] } } },
+        { "name": "Unban User (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "url": { "raw": "{{baseUrl}}/users/{{userId}}/unban", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "unban"] } } },
+        { "name": "Delete User (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/users/delete/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "delete", "{{userId}}"] } } },
+        { "name": "Get Agent Earnings", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/users/agent/earnings", "host": ["{{baseUrl}}"], "path": ["users", "agent", "earnings"] } } }
+      ]
+    },
+    {
+      "name": "Bingo Cards (Bulk)",
+      "item": [
+        { "name": "Create Bulk Cards (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "[{\n  \"cardId\": \"1001\",\n  \"b1\": 1, \"b2\": 2, \"b3\": 3, \"b4\": 4, \"b5\": 5,\n  \"i1\": 16, \"i2\": 17, \"i3\": 18, \"i4\": 19, \"i5\": 20,\n  \"n1\": 31, \"n2\": 32, \"n3\": 33, \"n4\": 34,\n  \"g1\": 46, \"g2\": 47, \"g3\": 48, \"g4\": 49, \"g5\": 50,\n  \"o1\": 61, \"o2\": 62, \"o3\": 63, \"o4\": 64, \"o5\": 65\n}]" }, "url": { "raw": "{{baseUrl}}/bingo-cards/create/", "host": ["{{baseUrl}}"], "path": ["bingo-cards", "create", ""] } } },
+        { "name": "Insert Cards From File (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "/path/to/cards.csv" }] }, "url": { "raw": "{{baseUrl}}/bingo-cards/insert", "host": ["{{baseUrl}}"], "path": ["bingo-cards", "insert"] } } },
+        { "name": "Get Cards Count", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo-cards/count", "host": ["{{baseUrl}}"], "path": ["bingo-cards", "count"] } } },
+        { "name": "Get All Cards By Room", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo-cards/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["bingo-cards", "{{roomId}}"] } } },
+        { "name": "Get Card By CardId", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo-cards/{{cardId}}", "host": ["{{baseUrl}}"], "path": ["bingo-cards", "{{cardId}}"] } } },
+        { "name": "Update Card By CardId (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"b1\": 10\n}" }, "url": { "raw": "{{baseUrl}}/bingo-cards/{{cardId}}", "host": ["{{baseUrl}}"], "path": ["bingo-cards", "{{cardId}}"] } } },
+        { "name": "Get Cards Data (Batch)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"cardIds\": [\"1\", \"2\", \"3\"]\n}" }, "url": { "raw": "{{baseUrl}}/bingo-cards/data", "host": ["{{baseUrl}}"], "path": ["bingo-cards", "data"] } } },
+        { "name": "Delete All Cards (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/bingo-cards/", "host": ["{{baseUrl}}"], "path": ["bingo-cards", ""] } } }
+      ]
+    },
+    {
+      "name": "Game Rooms",
+      "item": [
+        { "name": "Create Game Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"stakeAmount\": 10,\n  \"bonusEnabled\": false,\n  \"bonusAmount\": 0,\n  \"startTime\": \"2026-04-17T12:00:00Z\",\n  \"maxCardsPerUser\": 5\n}" }, "url": { "raw": "{{baseUrl}}/gamerooms", "host": ["{{baseUrl}}"], "path": ["gamerooms"] } } },
+        { "name": "Get All Game Rooms", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/gamerooms", "host": ["{{baseUrl}}"], "path": ["gamerooms"] } } },
+        { "name": "Get Game Room By ID", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/gamerooms/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["gamerooms", "{{roomId}}"] } } },
+        { "name": "Update Game Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bonusEnabled\": true,\n  \"bonusAmount\": 20,\n  \"status\": \"active\"\n}" }, "url": { "raw": "{{baseUrl}}/gamerooms/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["gamerooms", "{{roomId}}"] } } },
+        { "name": "Update Room Bonus (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bonusEnabled\": true,\n  \"bonusAmount\": 50,\n  \"bonusDescription\": \"Promo bonus\"\n}" }, "url": { "raw": "{{baseUrl}}/gamerooms/{{roomId}}/bonus", "host": ["{{baseUrl}}"], "path": ["gamerooms", "{{roomId}}", "bonus"] } } },
+        { "name": "Delete Game Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/gamerooms/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["gamerooms", "{{roomId}}"] } } }
+      ]
+    },
+    {
+      "name": "Bingo (/bingo & /cards)",
+      "item": [
+        { "name": "Get Card By ID", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo/get/{{cardId}}", "host": ["{{baseUrl}}"], "path": ["bingo", "get", "{{cardId}}"] } } },
+        { "name": "Get Reservation By User", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo/reservation/{{userId}}", "host": ["{{baseUrl}}"], "path": ["bingo", "reservation", "{{userId}}"] } } },
+        { "name": "Get All User Cards", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo/all/cards/{{userId}}", "host": ["{{baseUrl}}"], "path": ["bingo", "all", "cards", "{{userId}}"] } } },
+        { "name": "Get Card With User Context", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo/get/{{userId}}/{{cardId}}", "host": ["{{baseUrl}}"], "path": ["bingo", "get", "{{userId}}", "{{cardId}}"] } } },
+        { "name": "Get Card IDs", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo/getCardIds", "host": ["{{baseUrl}}"], "path": ["bingo", "getCardIds"] } } },
+        { "name": "Create Card (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"cardId\": \"9999\",\n  \"b1\": 1, \"b2\": 2, \"b3\": 3, \"b4\": 4, \"b5\": 5,\n  \"i1\": 16, \"i2\": 17, \"i3\": 18, \"i4\": 19, \"i5\": 20,\n  \"n1\": 31, \"n2\": 32, \"n3\": 33, \"n4\": 34,\n  \"g1\": 46, \"g2\": 47, \"g3\": 48, \"g4\": 49, \"g5\": 50,\n  \"o1\": 61, \"o2\": 62, \"o3\": 63, \"o4\": 64, \"o5\": 65,\n  \"userId\": \"{{userId}}\"\n}" }, "url": { "raw": "{{baseUrl}}/bingo/create", "host": ["{{baseUrl}}"], "path": ["bingo", "create"] } } },
+        { "name": "Create Cards Bulk (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "[]" }, "url": { "raw": "{{baseUrl}}/bingo/create/bulk", "host": ["{{baseUrl}}"], "path": ["bingo", "create", "bulk"] } } },
+        { "name": "Update Card (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"b1\": 5\n}" }, "url": { "raw": "{{baseUrl}}/bingo/update/{{userId}}/{{cardId}}", "host": ["{{baseUrl}}"], "path": ["bingo", "update", "{{userId}}", "{{cardId}}"] } } },
+        { "name": "Remove All User Cards (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/bingo/remove/all/{{userId}}", "host": ["{{baseUrl}}"], "path": ["bingo", "remove", "all", "{{userId}}"] } } },
+        { "name": "Remove One User Card (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/bingo/remove/{{userId}}/{{cardId}}", "host": ["{{baseUrl}}"], "path": ["bingo", "remove", "{{userId}}", "{{cardId}}"] } } },
+        { "name": "Last Game Test", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bingo/last-game/test", "host": ["{{baseUrl}}"], "path": ["bingo", "last-game", "test"] } } }
+      ]
+    },
+    {
+      "name": "Game History",
+      "item": [
+        { "name": "Recent Winners", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/games-history/recent-winners", "host": ["{{baseUrl}}"], "path": ["games-history", "recent-winners"] } } },
+        { "name": "My Game History", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/games-history/mine", "host": ["{{baseUrl}}"], "path": ["games-history", "mine"] } } },
+        { "name": "Leaderboard", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/games-history/leaderboard", "host": ["{{baseUrl}}"], "path": ["games-history", "leaderboard"] } } },
+        { "name": "Admin Leaderboard", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/games-history/leaderboard/admin", "host": ["{{baseUrl}}"], "path": ["games-history", "leaderboard", "admin"] } } },
+        { "name": "History By User ID", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/games-history/history/{{userId}}", "host": ["{{baseUrl}}"], "path": ["games-history", "history", "{{userId}}"] } } },
+        { "name": "Game History (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/history/game-history", "host": ["{{baseUrl}}"], "path": ["history", "game-history"] } } },
+        { "name": "History Transactions (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/history/transactions", "host": ["{{baseUrl}}"], "path": ["history", "transactions"] } } }
+      ]
+    },
+    {
+      "name": "Transactions & Wallet",
+      "item": [
+        { "name": "Get All Transactions (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/transactions/all", "host": ["{{baseUrl}}"], "path": ["transactions", "all"] } } },
+        { "name": "Get My Transactions", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/transactions/mine", "host": ["{{baseUrl}}"], "path": ["transactions", "mine"] } } },
+        { "name": "Get Bonus Transactions", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/transactions/bonuses", "host": ["{{baseUrl}}"], "path": ["transactions", "bonuses"] } } },
+        { "name": "Get Transactions", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/transactions", "host": ["{{baseUrl}}"], "path": ["transactions"] } } },
+        { "name": "Get Transaction By ID", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/transactions/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["transactions", "{{transactionId}}"] } } },
+        { "name": "Update Transaction (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"COMPLETED\",\n  \"notes\": \"Manual verification\"\n}" }, "url": { "raw": "{{baseUrl}}/transactions/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["transactions", "{{transactionId}}"] } } },
+        { "name": "Delete Transaction (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/transactions/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["transactions", "{{transactionId}}"] } } },
+        { "name": "List Wallet Logs (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/wallet-logs", "host": ["{{baseUrl}}"], "path": ["wallet-logs"] } } },
+        { "name": "Get Wallet Log By ID (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/wallet-logs/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["wallet-logs", "{{transactionId}}"] } } },
+        { "name": "Delete Wallet Log (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/wallet-logs/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["wallet-logs", "{{transactionId}}"] } } },
+        { "name": "Create Transfer", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"recipientPhone\": \"+251944556677\",\n  \"amount\": 50,\n  \"note\": \"Payment for game\"\n}" }, "url": { "raw": "{{baseUrl}}/transfer", "host": ["{{baseUrl}}"], "path": ["transfer"] } } },
+        { "name": "Get All Transfers (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/transfer", "host": ["{{baseUrl}}"], "path": ["transfer"] } } },
+        { "name": "Get User Transfers", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/transfer/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["transfer", "user", "{{userId}}"] } } },
+        { "name": "Delete Transfer (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/transfer/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["transfer", "{{transactionId}}"] } } }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        { "name": "AddisPay Deposit", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"amount\": 100,\n  \"paymentMethod\": \"telebirr\"\n}" }, "url": { "raw": "{{baseUrl}}/addis-pay/deposit", "host": ["{{baseUrl}}"], "path": ["addis-pay", "deposit"] } } },
+        { "name": "AddisPay Withdraw", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"amount\": 50,\n  \"paymentMethod\": \"telebirr\"\n}" }, "url": { "raw": "{{baseUrl}}/addis-pay/withdraw", "host": ["{{baseUrl}}"], "path": ["addis-pay", "withdraw"] } } },
+        { "name": "AddisPay Status", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/addis-pay/status", "host": ["{{baseUrl}}"], "path": ["addis-pay", "status"] } } },
+        { "name": "Deposit Success Callback", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reference\": \"DEP001\",\n  \"status\": \"completed\",\n  \"transactionId\": \"ADDIS_TXN_123\"\n}" }, "url": { "raw": "{{baseUrl}}/addis-pay/deposit/success", "host": ["{{baseUrl}}"], "path": ["addis-pay", "deposit", "success"] } } },
+        { "name": "Deposit Failure Callback", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reference\": \"DEP001\",\n  \"status\": \"failed\",\n  \"error\": \"Insufficient funds\"\n}" }, "url": { "raw": "{{baseUrl}}/addis-pay/deposit/failure", "host": ["{{baseUrl}}"], "path": ["addis-pay", "deposit", "failure"] } } },
+        { "name": "Withdrawal Callback", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reference\": \"WDR001\",\n  \"status\": \"completed\"\n}" }, "url": { "raw": "{{baseUrl}}/addis-pay/withdraw/callback", "host": ["{{baseUrl}}"], "path": ["addis-pay", "withdraw", "callback"] } } },
+        { "name": "Submit Manual Receipt", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "receipt", "type": "file", "src": "/path/to/receipt.jpg" }, { "key": "amount", "value": "100", "type": "text" }, { "key": "paymentMethod", "value": "telebirr", "type": "text" }] }, "url": { "raw": "{{baseUrl}}/manual-payment/receipt", "host": ["{{baseUrl}}"], "path": ["manual-payment", "receipt"] } } },
+        { "name": "Submit Receipt Telegram", "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "receipt", "type": "file", "src": "/path/to/receipt.jpg" }] }, "url": { "raw": "{{baseUrl}}/manual-payment/upload-receipt/{{telegramId}}", "host": ["{{baseUrl}}"], "path": ["manual-payment", "upload-receipt", "{{telegramId}}"] } } },
+        { "name": "Get Receipts (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/manual-payment/receipts", "host": ["{{baseUrl}}"], "path": ["manual-payment", "receipts"] } } },
+        { "name": "Get Admin Transactions (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/manual-payment/all-transactions", "host": ["{{baseUrl}}"], "path": ["manual-payment", "all-transactions"] } } },
+        { "name": "Get Referral Income", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/manual-payment/referral-income", "host": ["{{baseUrl}}"], "path": ["manual-payment", "referral-income"] } } },
+        { "name": "Reject Receipt (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Invalid receipt\"\n}" }, "url": { "raw": "{{baseUrl}}/manual-payment/reject/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["manual-payment", "reject", "{{transactionId}}"] } } },
+        { "name": "Delete Receipt (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/manual-payment/{{transactionId}}", "host": ["{{baseUrl}}"], "path": ["manual-payment", "{{transactionId}}"] } } },
+        { "name": "Deposit To Wallet (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"amount\": 100,\n  \"receiptId\": \"receipt_id_here\"\n}" }, "url": { "raw": "{{baseUrl}}/manual-payment/deposit", "host": ["{{baseUrl}}"], "path": ["manual-payment", "deposit"] } } },
+        { "name": "Submit Withdrawal Request", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"amount\": 100,\n  \"paymentMethod\": \"telebirr\",\n  \"accountDetails\": {\n    \"phone\": \"+251955667788\"\n  }\n}" }, "url": { "raw": "{{baseUrl}}/withdrawal/request", "host": ["{{baseUrl}}"], "path": ["withdrawal", "request"] } } },
+        { "name": "Get Withdrawal Requests", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/withdrawal/requests", "host": ["{{baseUrl}}"], "path": ["withdrawal", "requests"] } } },
+        { "name": "Approve Withdrawal (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"withdrawalId\": \"{{withdrawalId}}\"\n}" }, "url": { "raw": "{{baseUrl}}/withdrawal/approve", "host": ["{{baseUrl}}"], "path": ["withdrawal", "approve"] } } },
+        { "name": "Reject Withdrawal (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"withdrawalId\": \"{{withdrawalId}}\",\n  \"reason\": \"Failed verification\"\n}" }, "url": { "raw": "{{baseUrl}}/withdrawal/reject", "host": ["{{baseUrl}}"], "path": ["withdrawal", "reject"] } } },
+        { "name": "Delete Withdrawal (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/withdrawal/requests/{{withdrawalId}}", "host": ["{{baseUrl}}"], "path": ["withdrawal", "requests", "{{withdrawalId}}"] } } },
+        { "name": "Create Agent Payment (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"agentId\": \"{{agentId}}\",\n  \"amount\": 1000,\n  \"paymentMethod\": \"telebirr\",\n  \"notes\": \"Commission payment\"\n}" }, "url": { "raw": "{{baseUrl}}/agent-payments", "host": ["{{baseUrl}}"], "path": ["agent-payments"] } } },
+        { "name": "Get Payments For Agent", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/agent-payments/{{agentId}}", "host": ["{{baseUrl}}"], "path": ["agent-payments", "{{agentId}}"] } } },
+        { "name": "Get My Agent Payments", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/agent-payments", "host": ["{{baseUrl}}"], "path": ["agent-payments"] } } }
+      ]
+    },
+    {
+      "name": "Admin & Reports",
+      "item": [
+        { "name": "Admin Dashboard", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/admin/dashboard", "host": ["{{baseUrl}}"], "path": ["admin", "dashboard"] } } },
+        { "name": "Admin Transactions", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/admin/transactions", "host": ["{{baseUrl}}"], "path": ["admin", "transactions"] } } },
+        { "name": "Admin Payouts", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/admin/payouts", "host": ["{{baseUrl}}"], "path": ["admin", "payouts"] } } },
+        { "name": "Admin Update Payout", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"paid\",\n  \"paymentReference\": \"TXN123456\"\n}" }, "url": { "raw": "{{baseUrl}}/admin/payouts/{{payoutId}}", "host": ["{{baseUrl}}"], "path": ["admin", "payouts", "{{payoutId}}"] } } },
+        { "name": "Admin Stats", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/admin/stats", "host": ["{{baseUrl}}"], "path": ["admin", "stats"] } } },
+        { "name": "Dashboard Reports", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/dashboard/reports", "host": ["{{baseUrl}}"], "path": ["dashboard", "reports"] } } },
+        { "name": "Revenue Breakdown (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/revenue/breakdown", "host": ["{{baseUrl}}"], "path": ["revenue", "breakdown"] } } },
+        { "name": "Revenue Transactions (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/revenue/transactions", "host": ["{{baseUrl}}"], "path": ["revenue", "transactions"] } } },
+        { "name": "Robot Stats (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/revenue/robots", "host": ["{{baseUrl}}"], "path": ["revenue", "robots"] } } },
+        { "name": "Revenue Trend (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/revenue/trend", "host": ["{{baseUrl}}"], "path": ["revenue", "trend"] } } }
+      ]
+    },
+    {
+      "name": "Settings & Config",
+      "item": [
+        { "name": "Get All Stake Bonuses", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/stake-bonus", "host": ["{{baseUrl}}"], "path": ["stake-bonus"] } } },
+        { "name": "Get Stake Bonus By Amount", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/stake-bonus/{{stakeAmount}}", "host": ["{{baseUrl}}"], "path": ["stake-bonus", "{{stakeAmount}}"] } } },
+        { "name": "Upsert Stake Bonus (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"stakeAmount\": 10,\n  \"bonusAmount\": 5,\n  \"systemCommission\": 0.1,\n  \"enabled\": true\n}" }, "url": { "raw": "{{baseUrl}}/stake-bonus", "host": ["{{baseUrl}}"], "path": ["stake-bonus"] } } },
+        { "name": "Get Pending Stakes (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/stake-bonus/admin/pending-stakes", "host": ["{{baseUrl}}"], "path": ["stake-bonus", "admin", "pending-stakes"] } } },
+        { "name": "Get All Commissions (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/stake-bonus/commission/all", "host": ["{{baseUrl}}"], "path": ["stake-bonus", "commission", "all"] } } },
+        { "name": "Get Commission By Stake", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/stake-bonus/commission/{{stakeAmount}}", "host": ["{{baseUrl}}"], "path": ["stake-bonus", "commission", "{{stakeAmount}}"] } } },
+        { "name": "Upsert Commission (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"stakeAmount\": 10,\n  \"systemCommission\": 0.12\n}" }, "url": { "raw": "{{baseUrl}}/stake-bonus/commission", "host": ["{{baseUrl}}"], "path": ["stake-bonus", "commission"] } } },
+        { "name": "Get Settings", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/settings", "host": ["{{baseUrl}}"], "path": ["settings"] } } },
+        { "name": "Get Card Reservation Settings", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/settings/card-reservation", "host": ["{{baseUrl}}"], "path": ["settings", "card-reservation"] } } },
+        { "name": "Update Settings (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"app\": {\n    \"maintenanceMode\": false,\n    \"allowRegistration\": true\n  },\n  \"games\": {\n    \"bingoEnabled\": true,\n    \"ludoEnabled\": true\n  }\n}" }, "url": { "raw": "{{baseUrl}}/settings", "host": ["{{baseUrl}}"], "path": ["settings"] } } },
+        { "name": "Update Card Reservation Settings (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"enabled\": true,\n  \"maxReservationTime\": 300,\n  \"allowedStakes\": [5, 10, 20, 50]\n}" }, "url": { "raw": "{{baseUrl}}/settings/card-reservation", "host": ["{{baseUrl}}"], "path": ["settings", "card-reservation"] } } },
+        { "name": "Get Admin Settings (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/admin/settings", "host": ["{{baseUrl}}"], "path": ["admin", "settings"] } } },
+        { "name": "Update Admin Settings (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"supportPhone\": \"+251911223344\",\n  \"supportEmail\": \"support@haywingames.com\"\n}" }, "url": { "raw": "{{baseUrl}}/admin/settings", "host": ["{{baseUrl}}"], "path": ["admin", "settings"] } } },
+        { "name": "Get App Config (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/config", "host": ["{{baseUrl}}"], "path": ["config"] } } },
+        { "name": "Update App Config (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"maintenanceMode\": false,\n  \"features\": {\n    \"bingo\": true,\n    \"keshkesh\": true,\n    \"spin\": true,\n    \"materialLottery\": false,\n    \"ludo\": true\n  }\n}" }, "url": { "raw": "{{baseUrl}}/config", "host": ["{{baseUrl}}"], "path": ["config"] } } },
+        { "name": "Get Public Config", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/config/public", "host": ["{{baseUrl}}"], "path": ["config", "public"] } } },
+        { "name": "Upload Promo Image (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "image", "type": "file", "src": "/path/to/image.jpg" }] }, "url": { "raw": "{{baseUrl}}/config/promo-image", "host": ["{{baseUrl}}"], "path": ["config", "promo-image"] } } },
+        { "name": "Upload Branding Assets (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "logo", "type": "file", "src": "/path/to/logo.png" }] }, "url": { "raw": "{{baseUrl}}/config/branding/upload", "host": ["{{baseUrl}}"], "path": ["config", "branding", "upload"] } } }
+      ]
+    },
+    {
+      "name": "Notifications & Permissions",
+      "item": [
+        { "name": "Send Notification (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "title", "value": "Platform Notice", "type": "text" }, { "key": "message", "value": "Test notification", "type": "text" }, { "key": "image", "type": "file", "src": "/path/to/image.jpg" }] }, "url": { "raw": "{{baseUrl}}/send-user-notice/notify", "host": ["{{baseUrl}}"], "path": ["send-user-notice", "notify"] } } },
+        { "name": "Register Game Manager (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Game Manager\",\n  \"phone\": \"+251966778899\"\n}" }, "url": { "raw": "{{baseUrl}}/permissions/game-managers/register", "host": ["{{baseUrl}}"], "path": ["permissions", "game-managers", "register"] } } },
+        { "name": "Get Game Managers (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/permissions/game-managers", "host": ["{{baseUrl}}"], "path": ["permissions", "game-managers"] } } },
+        { "name": "Update User Permissions (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"gamePermissions\": {\n    \"bingo\": true,\n    \"keshkesh\": true,\n    \"spin\": true,\n    \"material_lottery\": false,\n    \"ludo\": true\n  }\n}" }, "url": { "raw": "{{baseUrl}}/permissions/{{userId}}", "host": ["{{baseUrl}}"], "path": ["permissions", "{{userId}}"] } } },
+        { "name": "Get User Permissions", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/permissions/{{userId}}", "host": ["{{baseUrl}}"], "path": ["permissions", "{{userId}}"] } } },
+        { "name": "Leaderboard Route", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/leaderboard/leaderboard", "host": ["{{baseUrl}}"], "path": ["leaderboard", "leaderboard"] } } },
+        { "name": "Get Active Countries", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/countries/active", "host": ["{{baseUrl}}"], "path": ["countries", "active"] } } },
+        { "name": "Get All Countries (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/countries", "host": ["{{baseUrl}}"], "path": ["countries"] } } },
+        { "name": "Create Country (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"code\": \"ET\",\n  \"name\": \"Ethiopia\",\n  \"currency\": \"ETB\",\n  \"active\": true\n}" }, "url": { "raw": "{{baseUrl}}/countries", "host": ["{{baseUrl}}"], "path": ["countries"] } } },
+        { "name": "Initialize Countries (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": { "raw": "{{baseUrl}}/countries/initialize", "host": ["{{baseUrl}}"], "path": ["countries", "initialize"] } } },
+        { "name": "Update Country (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Country\"\n}" }, "url": { "raw": "{{baseUrl}}/countries/{{countryId}}", "host": ["{{baseUrl}}"], "path": ["countries", "{{countryId}}"] } } },
+        { "name": "Delete Country (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/countries/{{countryId}}", "host": ["{{baseUrl}}"], "path": ["countries", "{{countryId}}"] } } },
+        { "name": "Get Supported Phone Countries", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/phone/countries", "host": ["{{baseUrl}}"], "path": ["phone", "countries"] } } },
+        { "name": "Validate Phone", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+251911223344\"\n}" }, "url": { "raw": "{{baseUrl}}/phone/validate", "host": ["{{baseUrl}}"], "path": ["phone", "validate"] } } },
+        { "name": "Get Payment Methods", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/payment-methods", "host": ["{{baseUrl}}"], "path": ["payment-methods"] } } },
+        { "name": "Get All Payment Methods (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/payment-methods/all", "host": ["{{baseUrl}}"], "path": ["payment-methods", "all"] } } },
+        { "name": "Create Payment Method (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Telebirr\",\n  \"type\": \"mobile_money\",\n  \"enabled\": true\n}" }, "url": { "raw": "{{baseUrl}}/payment-methods", "host": ["{{baseUrl}}"], "path": ["payment-methods"] } } },
+        { "name": "Update Payment Method (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Method\"\n}" }, "url": { "raw": "{{baseUrl}}/payment-methods/{{paymentMethodId}}", "host": ["{{baseUrl}}"], "path": ["payment-methods", "{{paymentMethodId}}"] } } },
+        { "name": "Delete Payment Method (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/payment-methods/{{paymentMethodId}}", "host": ["{{baseUrl}}"], "path": ["payment-methods", "{{paymentMethodId}}"] } } }
+      ]
+    },
+    {
+      "name": "Keshkesh",
+      "item": [
+        { "name": "Create Keshkesh Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bet_amount\": 10,\n  \"max_players\": 10,\n  \"description\": \"Evening game\"\n}" }, "url": { "raw": "{{baseUrl}}/keshkesh/create", "host": ["{{baseUrl}}"], "path": ["keshkesh", "create"] } } },
+        { "name": "List Keshkesh Rooms", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/keshkesh", "host": ["{{baseUrl}}"], "path": ["keshkesh"] } } },
+        { "name": "Keshkesh History", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/keshkesh/history", "host": ["{{baseUrl}}"], "path": ["keshkesh", "history"] } } },
+        { "name": "Get Keshkesh Room", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/keshkesh/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["keshkesh", "{{gameId}}"] } } },
+        { "name": "Update Keshkesh Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"max_players\": 15,\n  \"status\": \"active\"\n}" }, "url": { "raw": "{{baseUrl}}/keshkesh/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["keshkesh", "{{gameId}}"] } } },
+        { "name": "Reset Keshkesh Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": { "raw": "{{baseUrl}}/keshkesh/{{gameId}}/reset", "host": ["{{baseUrl}}"], "path": ["keshkesh", "{{gameId}}", "reset"] } } },
+        { "name": "Delete Keshkesh Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/keshkesh/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["keshkesh", "{{gameId}}"] } } }
+      ]
+    },
+    {
+      "name": "Spin",
+      "item": [
+        { "name": "Create Spin Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"bet_amount\": 10,\n  \"max_players\": 20,\n  \"description\": \"Fetan Spin\"\n}" }, "url": { "raw": "{{baseUrl}}/spin/create", "host": ["{{baseUrl}}"], "path": ["spin", "create"] } } },
+        { "name": "List Spin Rooms", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/spin", "host": ["{{baseUrl}}"], "path": ["spin"] } } },
+        { "name": "Spin History", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/spin/history", "host": ["{{baseUrl}}"], "path": ["spin", "history"] } } },
+        { "name": "Get Spin Room", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/spin/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["spin", "{{gameId}}"] } } },
+        { "name": "Update Spin Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"max_players\": 10\n}" }, "url": { "raw": "{{baseUrl}}/spin/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["spin", "{{gameId}}"] } } },
+        { "name": "Reset Spin Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": { "raw": "{{baseUrl}}/spin/{{gameId}}/reset", "host": ["{{baseUrl}}"], "path": ["spin", "{{gameId}}", "reset"] } } },
+        { "name": "Delete Spin Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/spin/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["spin", "{{gameId}}"] } } }
+      ]
+    },
+    {
+      "name": "Material Lottery",
+      "item": [
+        { "name": "Create Material Lottery Game (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "body": { "mode": "formdata", "formdata": [{ "key": "name", "value": "Lottery Name", "type": "text" }, { "key": "description", "value": "Description", "type": "text" }, { "key": "prizeImage", "type": "file", "src": "/path/to/image.jpg" }] }, "url": { "raw": "{{baseUrl}}/material-lottery/create", "host": ["{{baseUrl}}"], "path": ["material-lottery", "create"] } } },
+        { "name": "Get Material Lottery Games", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/material-lottery", "host": ["{{baseUrl}}"], "path": ["material-lottery"] } } },
+        { "name": "Material Lottery History", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/material-lottery/history", "host": ["{{baseUrl}}"], "path": ["material-lottery", "history"] } } },
+        { "name": "Update Material Lottery Game (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "body": { "mode": "formdata", "formdata": [{ "key": "name", "value": "Updated Name", "type": "text" }] }, "url": { "raw": "{{baseUrl}}/material-lottery/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["material-lottery", "{{gameId}}"] } } },
+        { "name": "Get Material Lottery Payouts", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/material-lottery/payouts", "host": ["{{baseUrl}}"], "path": ["material-lottery", "payouts"] } } },
+        { "name": "Update Material Lottery Payout (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"paid\",\n  \"notes\": \"Prize delivered\"\n}" }, "url": { "raw": "{{baseUrl}}/material-lottery/payouts/{{payoutId}}", "host": ["{{baseUrl}}"], "path": ["material-lottery", "payouts", "{{payoutId}}"] } } },
+        { "name": "Get Material Lottery Dashboard (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/material-lottery/dashboard", "host": ["{{baseUrl}}"], "path": ["material-lottery", "dashboard"] } } },
+        { "name": "Reset Material Lottery Game (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": { "raw": "{{baseUrl}}/material-lottery/{{gameId}}/reset", "host": ["{{baseUrl}}"], "path": ["material-lottery", "{{gameId}}", "reset"] } } },
+        { "name": "Delete Material Lottery Game (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/material-lottery/{{gameId}}", "host": ["{{baseUrl}}"], "path": ["material-lottery", "{{gameId}}"] } } }
+      ]
+    },
+    {
+      "name": "Ludo",
+      "item": [
+        { "name": "Create Ludo Room", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"stakeAmount\": 10,\n  \"mode\": \"classic\",\n  \"playerCount\": 2,\n  \"isPrivate\": false\n}" }, "url": { "raw": "{{baseUrl}}/ludo/rooms/create", "host": ["{{baseUrl}}"], "path": ["ludo", "rooms", "create"] } } },
+        { "name": "Join Ludo Room", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomId\": \"{{roomId}}\"\n}" }, "url": { "raw": "{{baseUrl}}/ludo/rooms/join", "host": ["{{baseUrl}}"], "path": ["ludo", "rooms", "join"] } } },
+        { "name": "List Ludo Rooms", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/ludo/rooms", "host": ["{{baseUrl}}"], "path": ["ludo", "rooms"] } } },
+        { "name": "Get Ludo Room", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/ludo/rooms/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["ludo", "rooms", "{{roomId}}"] } } },
+        { "name": "Cancel Ludo Room (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": { "raw": "{{baseUrl}}/ludo/rooms/{{roomId}}/cancel", "host": ["{{baseUrl}}"], "path": ["ludo", "rooms", "{{roomId}}", "cancel"] } } },
+        { "name": "Admin List Ludo Rooms", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/ludo/admin/rooms", "host": ["{{baseUrl}}"], "path": ["ludo", "admin", "rooms"] } } },
+        { "name": "Admin Get Ludo Game", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/ludo/admin/games/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["ludo", "admin", "games", "{{roomId}}"] } } },
+        { "name": "Admin Get Ludo Stats", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/ludo/admin/stats", "host": ["{{baseUrl}}"], "path": ["ludo", "admin", "stats"] } } }
+      ]
+    },
+    {
+      "name": "Robots & Bot Pacing",
+      "item": [
+        { "name": "Create Robot (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Robot One\",\n  \"phone\": \"+251900000001\"\n}" }, "url": { "raw": "{{baseUrl}}/robots", "host": ["{{baseUrl}}"], "path": ["robots"] } } },
+        { "name": "Delete Robot (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": { "raw": "{{baseUrl}}/robots/{{userId}}", "host": ["{{baseUrl}}"], "path": ["robots", "{{userId}}"] } } },
+        { "name": "Adjust Robot Wallet (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"amount\": 1000,\n  \"operation\": \"add\"\n}" }, "url": { "raw": "{{baseUrl}}/robots/{{userId}}/wallet", "host": ["{{baseUrl}}"], "path": ["robots", "{{userId}}", "wallet"] } } },
+        { "name": "Get Robot Names (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/robots/{{userId}}/names", "host": ["{{baseUrl}}"], "path": ["robots", "{{userId}}", "names"] } } },
+        { "name": "Update Robot Names (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"names\": [\"Bot A\", \"Bot B\"]\n}" }, "url": { "raw": "{{baseUrl}}/robots/{{userId}}/names", "host": ["{{baseUrl}}"], "path": ["robots", "{{userId}}", "names"] } } },
+        { "name": "Get Bot Pacing (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/bot-pacing", "host": ["{{baseUrl}}"], "path": ["bot-pacing"] } } },
+        { "name": "Update Bot Pacing (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reservationDelay\": 2000,\n  \"maxCardsPerTick\": 5\n}" }, "url": { "raw": "{{baseUrl}}/bot-pacing", "host": ["{{baseUrl}}"], "path": ["bot-pacing"] } } },
+        { "name": "Reset Bot Pacing (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": { "raw": "{{baseUrl}}/bot-pacing/reset", "host": ["{{baseUrl}}"], "path": ["bot-pacing", "reset"] } } }
+      ]
+    },
+    {
+      "name": "SMS Deposit",
+      "item": [
+        { "name": "Validate Automatic Deposit (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reference\": \"SMS001\",\n  \"amount\": 100\n}" }, "url": { "raw": "{{baseUrl}}/sms-deposit/automatic-deposit/validate", "host": ["{{baseUrl}}"], "path": ["sms-deposit", "automatic-deposit", "validate"] } } },
+        { "name": "Automatic Deposit", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"amount\": 100,\n  \"paymentMethod\": \"sms\",\n  \"reference\": \"SMS001\"\n}" }, "url": { "raw": "{{baseUrl}}/sms-deposit/automatic-deposit", "host": ["{{baseUrl}}"], "path": ["sms-deposit", "automatic-deposit"] } } }
+      ]
+    },
+    {
+      "name": "Jackpot",
+      "item": [
+        { "name": "Get Public Jackpot", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/jackpot/public", "host": ["{{baseUrl}}"], "path": ["jackpot", "public"] } } },
+        { "name": "Get Jackpot Config (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/jackpot", "host": ["{{baseUrl}}"], "path": ["jackpot"] } } },
+        { "name": "Update Jackpot Config (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"enabled\": true,\n  \"contributionPercent\": 0.02\n}" }, "url": { "raw": "{{baseUrl}}/jackpot", "host": ["{{baseUrl}}"], "path": ["jackpot"] } } },
+        { "name": "Adjust Jackpot Wallet (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"amount\": 500,\n  \"operation\": \"add\",\n  \"reason\": \"Seed funding\"\n}" }, "url": { "raw": "{{baseUrl}}/jackpot/adjust-wallet", "host": ["{{baseUrl}}"], "path": ["jackpot", "adjust-wallet"] } } },
+        { "name": "Allocate Daily Jackpot (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": { "raw": "{{baseUrl}}/jackpot/allocate-daily", "host": ["{{baseUrl}}"], "path": ["jackpot", "allocate-daily"] } } },
+        { "name": "Get Jackpot History (Admin)", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": { "raw": "{{baseUrl}}/jackpot/history", "host": ["{{baseUrl}}"], "path": ["jackpot", "history"] } } }
+      ]
+    }
+  ]
+}

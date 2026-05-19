@@ -18,7 +18,6 @@ const BingoCard = ({
   drawnNumbers,
   isWinnerCard,
   winningCombo,
-  disqualified,
 }) => {
   if (!cardGrid) return null;
 
@@ -28,19 +27,13 @@ const BingoCard = ({
     return acc;
   }, {});
 
+  const winningSet = new Set((winningCombo || []).map(String));
+  const drawnSet = new Set((drawnNumbers || []).map(String));
+
   return (
     <div
-      className={`relative bg-white/5 rounded-2xl overflow-hidden border border-white/10 shadow-inner w-full transition-all duration-500 ${disqualified ? "grayscale opacity-60" : ""
-        }`}
+      className="relative bg-white/5 rounded-2xl overflow-hidden border border-white/10 shadow-inner w-full transition-all duration-500"
     >
-      {disqualified && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-rose-900/20 backdrop-blur-[2px]">
-          <span className="bg-rose-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-            Disqualified
-          </span>
-        </div>
-      )}
-
       <div className="p-2 flex justify-center gap-1">
         {Object.entries(columns).map(([letter, numbers]) => (
           <BingoColumn
@@ -49,10 +42,10 @@ const BingoCard = ({
             numbers={numbers}
             isClickable={false}
             getIsWinning={(num) =>
-              isWinnerCard && winningCombo.includes(num)
+              isWinnerCard && winningSet.has(String(num))
             }
             getIsNormallyCalled={(num) =>
-              drawnNumbers.includes(num) || num === "0"
+              drawnSet.has(String(num)) || String(num) === "0" || String(num) === "F"
             }
             getIsLastCalled={() => false}
           />
@@ -76,9 +69,13 @@ const BingoModal = ({
   isWatcher = false,
   disqualified = false,
   isMuted = false,
-  winPattern = "",
+  result = null,
+  userPrize = 0,
+  userLoss = 0,
+  disqualificationMessage = "",
 }) => {
   const isWinner = !disqualified && winners.includes(playerId);
+  const isSpectator = isWatcher || result === "Watching" || (!winners.includes(playerId) && !disqualified && userLoss === 0 && userPrize === 0);
 
   const [seconds, setSeconds] = useState(6);
   const hasPlayedRef = useRef(false);
@@ -136,7 +133,7 @@ const BingoModal = ({
     }
   };
 
-  const theme = isWatcher
+  const theme = isSpectator
     ? { bg: "bg-indigo-600", title: "ጨዋታው ተጠናቋል", icon: <Users /> }
     : isWinner
       ? { bg: "bg-emerald-600", title: "አሸንፈዋል", icon: <Trophy /> }
@@ -178,6 +175,34 @@ const BingoModal = ({
         {/* CONTENT */}
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
 
+          {/* NOTIFICATION MESSAGE */}
+          <div className={`p-4 rounded-2xl border text-center text-sm font-semibold transition-all duration-300 ${disqualified
+            ? "bg-rose-500/10 border-rose-500/20 text-rose-300 animate-pulse"
+            : isWinner
+              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
+              : isSpectator
+                ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300"
+                : "bg-rose-500/10 border-rose-500/20 text-rose-300"
+            }`}>
+            {disqualified ? (
+              <span className="flex items-center justify-center gap-2">
+                ⚠️ {disqualificationMessage || "You have been disqualified."}
+              </span>
+            ) : isWinner ? (
+              <span className="flex items-center justify-center gap-2">
+                🎉 Congratulations! You won {userPrize} Birr!
+              </span>
+            ) : isSpectator ? (
+              <span className="flex items-center justify-center gap-2">
+                👀 Spectating: Round completed.
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                😢 Game Over. You lost {userLoss} Birr.
+              </span>
+            )}
+          </div>
+
           {winningCards.slice(0, 1).map((cardId, index) => (
             <div
               key={cardId}
@@ -195,14 +220,13 @@ const BingoModal = ({
                 drawnNumbers={drawnNumbers}
                 isWinnerCard={true}
                 winningCombo={winningCombos[index] || []}
-                disqualified={disqualified}
               />
             </div>
           ))}
 
           <button
             onClick={onClose}
-            className={`${theme.bg} w-full py-4 rounded-2xl font-black`}
+            className={`${theme.bg} w-full py-4 rounded-2xl font-black text-white hover:opacity-90 transition-all`}
           >
             CONTINUE ({seconds}s)
           </button>
