@@ -523,45 +523,20 @@ const handleGameOver = async (io, gameRoomId, winners = [], type = "auto") => {
       }
     }
 
-    // Notify all players of game result
-    for (const reservation of reservations) {
-      const userId = reservation.userId.toString();
-      const userCards = reservation.cardIds;
-      const isWinner = eligibleWinners.some(
-        (w) => w.userId.toString() === userId
-      );
-      const userPrize = isWinner ? prizePerWinner : 0;
-      const userLoss = isWinner ? 0 : gameRoom.stakeAmount * userCards.length;
+    // Notify all players of game result room-wide
+    const gameOverPayload = {
+      winners: eligibleWinners.map((w) => w.userId),
+      winningCards: eligibleWinners.map((w) => w.cardId),
+      winningCombos: eligibleWinners.map((w) => w.winningCombo),
+      firstNames: winnersWithDetails.map((w) => w.firstName),
+      prizes: eligibleWinners.map(() => prizePerWinner),
+      drawnNumbers: gameRoom.drawnNumbers,
+      numberOfPlayers: totalCards,
+      winAmount,
+      winningCardGrids: eligibleWinners.map((w) => w.cardGrid),
+    };
 
-      const winnerCards = eligibleWinners
-        .filter((w) => w.userId.toString() === userId)
-        .map((w) => w.cardId);
-
-      const winningCombos = eligibleWinners
-        .filter((w) => w.userId.toString() === userId)
-        .map((w) => w.winningCombo);
-
-      const winningCardGrids = eligibleWinners
-        .filter((w) => w.userId.toString() === userId)
-        .map((w) => w.cardGrid);
-
-      const payload = {
-        result: isWinner ? "Won" : "Lost",
-        winners: eligibleWinners.map((w) => w.userId),
-        winningCards: eligibleWinners.map((w) => w.cardId),
-        winningCombos: eligibleWinners.map((w) => w.winningCombo),
-        firstNames: winnersWithDetails.map((w) => w.firstName),
-        prizes: eligibleWinners.map(() => prizePerWinner),
-        drawnNumbers: gameRoom.drawnNumbers,
-        numberOfPlayers: totalCards,
-        winAmount,
-        winningCardGrids: eligibleWinners.map((w) => w.cardGrid),
-        userPrize,
-        userLoss,
-      };
-
-      io.to(gameRoomId).emit(`game_over_${userId}`, payload);
-    }
+    io.to(gameRoomId).emit("game_over", gameOverPayload);
 
     io.to(gameRoomId).emit("cards", await fetchCardStatuses(gameRoomId));
     io.emit(

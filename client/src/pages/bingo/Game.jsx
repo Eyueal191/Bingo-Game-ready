@@ -192,6 +192,47 @@ function Game() {
           </div>
 
         </div>
+        {/* ===================== MODALS ===================== */}
+        {isSettingsOpen && (
+          <GameSettingsModal
+            isManualMode={isManualMode}
+            toggleMode={toggleMode}
+            voiceOption={voiceOption}
+            voiceOptions={voiceOptions}
+            handleVoiceChange={handleVoiceChange}
+            isMuted={isMuted}
+            toggleMute={toggleMute}
+            isWatcher={isWatcher}
+            onClose={() => setIsSettingsOpen(false)}
+          />
+        )}
+
+        {finishedGame && (
+          <BingoModal
+            playerId={userId || "unknown"}
+            roomId={roomId}
+            isWatcher={isWatcher}
+            onClose={handleModalClose}
+            winners={winners}
+            winningCards={winningCards}
+            winningCombos={winningCombos}
+            prizes={prizes}
+            drawnNumbers={drawnNumbers}
+            winningCardGrids={winningCardGrids}
+            result={result}
+            userPrize={userPrize}
+            userLoss={userLoss}
+            firstNames={firstNames}
+            lastBall={currentNumber}
+            disqualified={isDisqualified || result === "Disqualified"}
+            disqualificationMessage={
+              disqualificationMessage || DEFAULT_DISQUALIFICATION_MESSAGE
+            }
+            disqualifiedCards={disqualifiedCards}
+            isMuted={isMuted}
+            winPattern={winPattern}
+          />
+        )}
       </div>
     );
   }

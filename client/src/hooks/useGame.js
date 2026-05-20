@@ -98,57 +98,29 @@ export function useGameSocket() {
     });
 
     socket.on(
-      "game_over",
+      `game_over_${userId}`,
       ({
+        result,
         winners = [],
         winningCards = [],
         prizes = [],
         drawnNumbers = [],
         winningCombos = [],
         winningCardGrids = [],
+        userPrize = 0,
+        userLoss = 0,
       }) => {
-        const store = useAppStore.getState();
-        const wasDisqualified = store.isDisqualified;
-        const hasCards = store.storedCards && store.storedCards.length > 0;
-        const isWinner = Array.isArray(winners) && winners.includes(userId);
-
-        let calculatedUserPrize = 0;
-        if (isWinner && !wasDisqualified) {
-          winners.forEach((wId, idx) => {
-            if (wId === userId) {
-              calculatedUserPrize += Number(prizes[idx]) || 0;
-            }
-          });
-        }
-
-        let calculatedUserLoss = 0;
-        if (!isWinner && hasCards) {
-          const cardCount = (store.disqualifiedCards && store.disqualifiedCards.length) || store.storedCards.length || 0;
-          const stakeAmount = Number(store.roomData.stakeAmount) || 0;
-          calculatedUserLoss = stakeAmount * cardCount;
-        }
-
-        let resultStr = "Lost";
-        if (!hasCards) {
-          resultStr = "Watching";
-        } else if (isWinner) {
-          resultStr = "Won";
-        }
-        if (wasDisqualified) {
-          resultStr = "Disqualified";
-        }
-
-        setResult(resultStr);
+        setResult(result);
         setWinners(winners);
         setWinningCards(winningCards);
         setPrizes(prizes);
         setDrawnNumbers(drawnNumbers);
         setWinningCombos(winningCombos);
         setWinningCardGrids(winningCardGrids);
-        setUserPrize(calculatedUserPrize);
-        setUserLoss(calculatedUserLoss);
+        setUserPrize(userPrize);
+        setUserLoss(userLoss);
         toast.success(
-          `Game Over! Result: ${resultStr}. Winners: ${winners.join(", ")}`
+          `Game Over! Result: ${result}. Winners: ${winners.join(", ")}`
         );
         setLoading(false);
       }
@@ -177,7 +149,7 @@ export function useGameSocket() {
       socket.off("error", onError);
       socket.off("start_game");
       socket.off("number_called");
-      socket.off("game_over");
+      socket.off(`game_over_${userId}`);
       socket.off("counter", handleCounter);
     };
   }, [

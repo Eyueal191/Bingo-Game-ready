@@ -2130,7 +2130,7 @@ Socket server runs on same backend host.
 
 **Client Connection:**
 ```javascript
-const socket = io("http://localhost:5000", {
+const socket = io("http://localhost:5050", {
   auth: { userId: "<userId>" }
 });
 ```

@@ -1,6 +1,6 @@
 const BingoLoading = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#21103D] px-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-bingo-bg px-6">
 
       {/* Spinner Container (responsive sizing) */}
       <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28">
@@ -23,7 +23,7 @@ const BingoLoading = () => {
 
       {/* Optional subtle subtitle */}
       <p className="mt-2 text-white/60 text-sm sm:text-base text-center max-w-xs">
-        Get ready to Win!
+        Preparing your bingo experience
       </p>
 
     </div>

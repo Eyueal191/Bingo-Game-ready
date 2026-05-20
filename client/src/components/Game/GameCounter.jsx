@@ -9,7 +9,7 @@ export default function GameCounter({
   if (waitingForCounter && !gameStarted) {
     return (
       <Box className="text-center px-6! py-2!">
-        <Typography className="block text-[10px] sm:text-sm font-semibold glow text-yellow-500 black">
+        <Typography className="block text-[10px] sm:text-sm font-semibold text-white glow-black">
           Waiting for more players...
         </Typography>
       </Box>
@@ -20,5 +20,6 @@ export default function GameCounter({
     return <CardCounter counterValue={countdown} variant="inline" />;
   }
 
-  return null;
+  return
+  null;
 }

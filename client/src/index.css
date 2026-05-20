@@ -26,13 +26,13 @@
   --color-bingo-accent-dark: hsl(40, 90%, 38%);
 
   /* ─── BACKGROUND / SURFACE ─── */
-  --color-bingo-bg: #21103D
-    /* Deep Plum Black */
-    --color-bingo-surface: #1A0A2E;
+  --color-bingo-bg: linear-gradient(170deg, #623c89 0%, #571789 40%,#401b69 60%, #301752 80%, #2b1b4c 100%);
+  /* Deep Plum Black */
+  --color-bingo-surface: #1A0A2E;
   /* Dark Purple Surface */
   --color-bingo-card: #2B1A4D;
   /* Tile/Card Base */
-  --color-bingo-card-alt: #2B1A4D;
+  --color-bingo-card-alt: #2B1A4D; 
   /* Tile/Card Base */
   --color-card-selected: var(--color-bingo-accent);
   --color-card-reserved-me: var(--color-bingo-secondary);
@@ -171,11 +171,13 @@
   --gradient-emerald: linear-gradient(135deg,
       #00C193 0%,
       #009F79 100%);
-  --gradient-blue-shield: linear-gradient(180deg,
-      #3A5BFF 0%,
-      #2B1A4D 45%,
-      #2B1A4D 70%,
-      #8A3BFF 100%);
+  --gradient-blue-shield:  linear-gradient(
+  180deg,
+ #3A5BFF 0%,
+  #2B1A4D 45%,
+  #2B1A4D 70%,
+  #8A3BFF 100%
+);
 
 
   /* ─── TRANSITIONS ─── */

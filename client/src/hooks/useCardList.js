@@ -423,7 +423,6 @@ export function useCardList() {
       .includes(cardIdStr);
 
     if (alreadyReservedByUser) {
-      console.log(`Unreserve has been triggered in the frontend for card ${cardIdStr}`);
       socket.emit(
         "unreserve_cards",
         {
