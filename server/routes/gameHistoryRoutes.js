@@ -17,6 +17,6 @@ router.get(
 	isAdmin,
 	asyncHandler(getAdminLeaderboard)
 );
-router.get("/history/:userId", asyncHandler(getMyGameHistory));
+router.get("/history/:userId", authenticate, asyncHandler(getMyGameHistory));
 
 module.exports = router;

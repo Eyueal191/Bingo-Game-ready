@@ -3,7 +3,7 @@ const https = require("https");
 const pdf = require("pdf-parse");
 const logger = require("../../utils/winstonLogger");
 
-const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+const httpsAgent = new https.Agent({ rejectUnauthorized: process.env.NODE_ENV !== "production" });
 
 function cleanText(text) {
   return String(text || "").replace(/\s+/g, " ").trim();

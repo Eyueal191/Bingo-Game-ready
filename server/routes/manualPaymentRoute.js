@@ -16,7 +16,7 @@ router.post(
   receiptUpload.single("receipt"),
   asyncHandler(paymentController.submitReceiptTelegram)
 );
-router.get("/receipts", asyncHandler(paymentController.getReceipts));
+router.get("/receipts", authenticate, isAdmin, asyncHandler(paymentController.getReceipts));
 router.get(
   "/all-transactions",
   authenticate,
@@ -28,6 +28,6 @@ router.get(
   authenticate,
   asyncHandler(paymentController.getReferralData)
 );
-router.post("/deposit", asyncHandler(paymentController.depositToWallet));
+router.post("/deposit", authenticate, isAdmin, asyncHandler(paymentController.depositToWallet));
 
 module.exports = router;

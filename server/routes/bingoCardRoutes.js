@@ -2,10 +2,11 @@ const express = require("express");
 const router = express.Router();
 const BingoCard = require("../models/bingoCardModel");
 const Reservation = require("../models/reservationModel");
+const { authenticate, isAdmin } = require("../middlewares/auth");
 const asyncHandler = require("../utils/asyncHandler");
 const logger = require("../utils/winstonLogger");
 
-router.get("/get/:cardId", asyncHandler(async (req, res) => {
+router.get("/get/:cardId", authenticate, asyncHandler(async (req, res) => {
   try {
     const { cardId } = req.params; // Extract cardId as a string
     const bingoCard = await BingoCard.findOne({ cardId: cardId }); // Query with correct format
@@ -19,7 +20,7 @@ router.get("/get/:cardId", asyncHandler(async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 }));
-router.get("/reservation/:userId", asyncHandler(async (req, res) => {
+router.get("/reservation/:userId", authenticate, asyncHandler(async (req, res) => {
   try {
     const { userId } = req.params;
     // Find the reservation by userId and roomId
@@ -44,7 +45,7 @@ router.get("/reservation/:userId", asyncHandler(async (req, res) => {
 }));
 
 
-router.get("/all/cards/:userId", asyncHandler(async (req, res) => {
+router.get("/all/cards/:userId", authenticate, asyncHandler(async (req, res) => {
   try {
     const userId = req.params.userId;
     // Find all bingo cards belonging to the specified user
@@ -68,7 +69,7 @@ router.get("/all/cards/:userId", asyncHandler(async (req, res) => {
   }
 }));
 
-router.get("/get/:userId/:cardId", asyncHandler(async (req, res) => {
+router.get("/get/:userId/:cardId", authenticate, asyncHandler(async (req, res) => {
   try {
     const userId = "65b4a2f56d2e4f0015dcb1c3";
     const cardId = req.params.cardId;
@@ -89,7 +90,7 @@ router.get("/get/:userId/:cardId", asyncHandler(async (req, res) => {
   }
 }));
 
-router.get("/getCardIds", asyncHandler(async (req, res) => {
+router.get("/getCardIds", authenticate, asyncHandler(async (req, res) => {
   try {
     const bingoCards = await BingoCard.find();
 
@@ -107,7 +108,7 @@ router.get("/getCardIds", asyncHandler(async (req, res) => {
   }
 }));
 
-router.post("/create", asyncHandler(async (req, res) => {
+router.post("/create", authenticate, isAdmin, asyncHandler(async (req, res) => {
   try {
     const {
       cardId,
@@ -217,7 +218,7 @@ router.post("/create", asyncHandler(async (req, res) => {
   }
 }));
 
-router.post("/create/bulk", asyncHandler(async (req, res) => {
+router.post("/create/bulk", authenticate, isAdmin, asyncHandler(async (req, res) => {
   try {
     const cardsData = req.body; // Assuming req.body is an array of objects
     // Create an array to store promises for saving each Bingo card
@@ -247,7 +248,7 @@ router.post("/create/bulk", asyncHandler(async (req, res) => {
 }));
 
 // PUT route to update a Bingo card if userId and cardId match
-router.put("/update/:userId/:cardId", asyncHandler(async (req, res) => {
+router.put("/update/:userId/:cardId", authenticate, isAdmin, asyncHandler(async (req, res) => {
   const { userId, cardId } = req.params;
 
   try {
@@ -275,7 +276,7 @@ router.put("/update/:userId/:cardId", asyncHandler(async (req, res) => {
   }
 }));
 
-router.delete("/remove/all/:userId", asyncHandler(async (req, res) => {
+router.delete("/remove/all/:userId", authenticate, isAdmin, asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -302,7 +303,7 @@ router.delete("/remove/all/:userId", asyncHandler(async (req, res) => {
   }
 }));
 
-router.delete("/remove/:userId/:cardId", asyncHandler(async (req, res) => {
+router.delete("/remove/:userId/:cardId", authenticate, isAdmin, asyncHandler(async (req, res) => {
   const { userId, cardId } = req.params;
 
   try {

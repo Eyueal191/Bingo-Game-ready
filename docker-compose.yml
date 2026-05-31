@@ -4,8 +4,8 @@ services:
     container_name: haywin-mongo
     restart: always
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=sam12345
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-root}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in your environment}
     volumes:
       - haywin-mongo-data:/data/db
       - ./mongo-keyfile:/etc/mongo-keyfile:ro
@@ -18,7 +18,7 @@ services:
           "--quiet",
           "--eval",
           "db.runCommand({ping: 1}).ok",
-          "mongodb://root:sam12345@localhost:27017/admin"
+          "mongodb://${MONGO_ROOT_USERNAME:-root}:${MONGO_ROOT_PASSWORD}@localhost:27017/admin"
         ]
       interval: 10s
       timeout: 5s

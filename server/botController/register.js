@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const { t, getLang } = require("./localization");
 const { backendApiClient } = require("./utils/backendApiClient");
 const logger = require("../utils/winstonLogger");
@@ -31,7 +32,7 @@ async function handleContact(bot, msg, referralCode = null, userStates) {
       return;
     }
 
-    const password = userStates[msg.chat.id]?.password || "ppmmmmmm";
+    const password = userStates[msg.chat.id]?.password || crypto.randomBytes(16).toString("hex");
 
     const userData = {
       telegramId: String(msg.from.id),
@@ -89,7 +90,7 @@ async function handlePasswordInput(bot, chatId, text, userStates) {
     userStates[chatId]._lastActiveAt = Date.now();
   }
   if (text.toLowerCase() === "skip") {
-    userStates[chatId].password = "ppmmmmmm";
+    userStates[chatId].password = crypto.randomBytes(16).toString("hex");
   } else if (text.length < 6) {
     bot.sendMessage(chatId, t("password_too_short", lang));
     return;

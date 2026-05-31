@@ -20,9 +20,9 @@ router.get("/all", authenticate, isAdmin, asyncHandler(getAllAddispayTransaction
 router.get("/mine", authenticate, asyncHandler(getUserTransactions));
 // Bonus transactions route
 router.get("/bonuses", authenticate, asyncHandler(getBonusTransactions));
-router.get("/", asyncHandler(getTransactions));
-router.get("/:transactionId", asyncHandler(getTransaction));
-router.put("/:transactionId", asyncHandler(updateTransactionDetails));
-router.delete("/:transactionId", asyncHandler(deleteTransactionRecord));
+router.get("/", authenticate, isAdmin, asyncHandler(getTransactions));
+router.get("/:transactionId", authenticate, isAdmin, asyncHandler(getTransaction));
+router.put("/:transactionId", authenticate, isAdmin, asyncHandler(updateTransactionDetails));
+router.delete("/:transactionId", authenticate, isAdmin, asyncHandler(deleteTransactionRecord));
 
 module.exports = router;

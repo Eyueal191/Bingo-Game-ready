@@ -3,9 +3,9 @@ const https = require("https");
 const pdf = require("pdf-parse");
 const logger = require("../../utils/winstonLogger");
 
-// Create HTTPS agent to bypass SSL verification, which is often needed for CBE's server
+// Create HTTPS agent; only bypass SSL verification outside production
 const httpsAgent = new https.Agent({
-  rejectUnauthorized: false,
+  rejectUnauthorized: process.env.NODE_ENV !== "production",
   // This option might be necessary for older server configurations
   secureOptions: require("constants").SSL_OP_LEGACY_SERVER_CONNECT,
 });

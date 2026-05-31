@@ -1,5 +1,5 @@
 const express = require("express");
-const { authenticate } = require("../middlewares/auth");
+const { authenticate, isAdmin } = require("../middlewares/auth");
 const {
     transferBalance,
     getAllTransfers,
@@ -48,9 +48,9 @@ router.use(authenticate);
 // Endpoint for users to transfer balance to each other
 router.post("/", validateTransferLimits, transferBalance);
 
-// Admin / user history endpoints (can add role-based protection later as needed by your admin structure)
-router.get("/", getAllTransfers);
-router.get("/user/:userId", getUserTransfers);
-router.delete("/:transferId", deleteTransfer);
+// Admin history endpoints
+router.get("/", isAdmin, getAllTransfers);
+router.get("/user/:userId", isAdmin, getUserTransfers);
+router.delete("/:transferId", isAdmin, deleteTransfer);
 
 module.exports = router;

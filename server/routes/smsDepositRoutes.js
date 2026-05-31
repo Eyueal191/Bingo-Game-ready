@@ -9,6 +9,7 @@ const asyncHandler = require("../utils/asyncHandler");
 
 router.post(
   "/automatic-deposit/validate",
+  authenticate,
   asyncHandler(validateAutomaticDeposit)
 );
 router.post(

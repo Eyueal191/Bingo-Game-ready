@@ -16,7 +16,7 @@ app.use(corsMiddleware);
 app.use(helmetMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(rateLimitMiddleware);
+app.use(rateLimitMiddleware);
 app.get("/api/v1/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running smoothly" });
 });

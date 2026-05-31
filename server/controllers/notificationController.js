@@ -110,8 +110,7 @@ const sendNotification = async (req, res) => {
     }
 
     const playerChatIds = players.map((player) => player.telegramId);
-    const supportGroupChatId =
-      CONFIG.supportGroupChatId || "-1002417555639";
+    const supportGroupChatId = CONFIG.supportGroupChatId;
     const allChatIds = uniqueDefined([...playerChatIds, supportGroupChatId]);
 
     // Fetch game room if amount is provided
