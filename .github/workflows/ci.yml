@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: docker compose config --quiet
+        env:
+          MONGO_INITDB_ROOT_USERNAME: ci_user
+          MONGO_INITDB_ROOT_PASSWORD: ci_password
+
+      - name: Check no secrets are hardcoded in docker-compose.yml
+        run: |
+          # Fail if docker-compose.yml contains hardcoded Mongo credentials
+          if grep -qE 'MONGO_INITDB_ROOT_(USERNAME|PASSWORD)=(?!\$\{)' docker-compose.yml; then
+            echo "::error::docker-compose.yml contains hardcoded MongoDB credentials. Use environment variable references instead."
+            exit 1
+          fi
+
+      - name: Ensure .env.example files exist
+        run: |
+          for f in .env.example server/.env.example client/.env.example; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Missing $f"
+              exit 1
+            fi
+          done
+          echo "All .env.example files present."
+
+      - name: Ensure .env files are gitignored
+        run: |
+          # Verify .gitignore contains patterns for .env files
+          if ! grep -q '\.env' .gitignore; then
+            echo "::error::.gitignore does not exclude .env files"
+            exit 1
+          fi
+          echo ".env files are properly gitignored."
+
+  server-lint:
+    runs-on: ubuntu-latest
+    if: hashFiles('server/package.json') != ''
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint --if-present
+
+  client-lint:
+    runs-on: ubuntu-latest
+    if: hashFiles('client/package.json') != ''
+
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint --if-present
